@@ -21,5 +21,6 @@ class Laporan extends Model
     // Format tipe data kolom tanggal jika diperlukan
     protected $casts = [
         'tanggal_kejadian' => 'datetime',
+        'riwayat_status' => 'array',
     ];
 }

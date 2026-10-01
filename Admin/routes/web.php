@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\PelaporAuthController;
+use App\Http\Controllers\PelaporController;
+use App\Http\Middleware\EnsurePelapor;
+use App\Http\Middleware\EnsureAdmin;
 use App\Models\Laporan;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -9,6 +13,33 @@ use Carbon\Carbon;
 
 use App\Http\Controllers\AdminAuthController;
 use Illuminate\Support\Facades\Hash;
+
+Route::prefix('pelapor')->name('pelapor.')->group(function () {
+    Route::get('/login', [PelaporAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [PelaporAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
+    Route::get('/register', [PelaporAuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [PelaporAuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
+});
+
+Route::prefix('pelapor')->name('pelapor.')->middleware(EnsurePelapor::class)->group(function () {
+    Route::get('/', [PelaporController::class, 'dashboard'])->name('home');
+    Route::post('/logout', [PelaporAuthController::class, 'logout'])->name('logout');
+    Route::get('/pengaduan', [PelaporController::class, 'index'])->name('laporan.index');
+    Route::get('/pengaduan/buat', [PelaporController::class, 'create'])->name('laporan.create');
+    Route::post('/pengaduan', [PelaporController::class, 'store'])->name('laporan.store');
+    Route::get('/pengaduan/{id}', [PelaporController::class, 'show'])->name('laporan.show');
+    Route::get('/pengaduan/{id}/bukti/{index}', [PelaporController::class, 'evidence'])->whereNumber('index')->name('laporan.evidence');
+    Route::post('/notifikasi/{id}/{eventIndex}/baca', [PelaporController::class, 'markNotificationRead'])->whereNumber('eventIndex')->name('notifications.read');
+    Route::delete('/notifikasi/{id}/{eventIndex}', [PelaporController::class, 'destroyNotification'])->whereNumber('eventIndex')->name('notifications.destroy');
+    Route::delete('/notifikasi-terbaca', [PelaporController::class, 'destroyReadNotifications'])->name('notifications.destroy-read');
+    Route::get('/pengaduan/{id}/edit', [PelaporController::class, 'edit'])->name('laporan.edit');
+    Route::put('/pengaduan/{id}', [PelaporController::class, 'update'])->name('laporan.update');
+    Route::delete('/pengaduan/{id}', [PelaporController::class, 'destroy'])->name('laporan.destroy');
+    Route::get('/emergency-call', [PelaporController::class, 'emergency'])->name('emergency');
+    Route::get('/informasi-edukasi', [PelaporController::class, 'information'])->name('information');
+    Route::get('/profil', [PelaporController::class, 'profile'])->name('profile');
+    Route::put('/profil', [PelaporController::class, 'updateProfile'])->name('profile.update');
+});
 
 // ========================================================
 // Autentikasi Admin (Login & Logout)
@@ -20,11 +51,12 @@ Route::match(['get', 'post'], '/logout', [AdminAuthController::class, 'logout'])
 // ========================================================
 // Web Admin Dashboard & Manajemen (Wajib Login Admin)
 // ========================================================
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', EnsureAdmin::class])->group(function () {
     // Dashboard & Laporan
     Route::get('/', [LaporanController::class, 'dashboard'])->name('dashboard');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/{id}', [LaporanController::class, 'show'])->name('laporan.show');
+    Route::get('/laporan/{id}/bukti/{index}', [LaporanController::class, 'evidence'])->whereNumber('index')->name('laporan.evidence');
     Route::put('/laporan/{id}/status', [LaporanController::class, 'updateStatus'])->name('laporan.update-status');
 
     // Manajemen Pengguna

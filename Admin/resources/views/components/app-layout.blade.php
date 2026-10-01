@@ -13,7 +13,7 @@
     <x-sidebar />
 
     <!-- Main Content Area -->
-    <main class="flex-1 p-8 overflow-y-auto">
+    <main class="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         {{ $slot }}
     </main>
 

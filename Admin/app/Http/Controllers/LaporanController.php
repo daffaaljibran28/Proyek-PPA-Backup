@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Laporan;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class LaporanController extends Controller
 {
@@ -125,22 +126,54 @@ class LaporanController extends Controller
         return view('laporan.show', compact('laporan'));
     }
 
+    public function evidence(Request $request, $id, int $index)
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $laporan = Laporan::where('id_laporan', $id)->firstOrFail();
+        $files = array_values(array_filter(array_map('trim', explode(',', (string) $laporan->bukti_lampiran))));
+        $path = $files[$index] ?? abort(404);
+
+        abort_unless(str_starts_with($path, 'laporan/' . $laporan->id_laporan . '/') && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path, basename($path), ['Cache-Control' => 'private, no-store'], 'inline');
+    }
+
     // ==========================================
     // 5. Update Status Laporan dari Admin Web
     // ==========================================
     public function updateStatus(Request $request, $id)
     {
         $laporan = Laporan::where('id_laporan', $id)->firstOrFail();
+        if ($laporan->status_penanganan === 'Selesai') {
+            return redirect()->route('laporan.show', $laporan->id_laporan)
+                ->with('error', 'Laporan yang sudah selesai tidak dapat diubah lagi.');
+        }
 
-        $statusBaru = $request->input('status_penanganan') 
-                   ?? $request->input('status') 
-                   ?? $laporan->status_penanganan;
+        $validated = $request->validate([
+            'status_penanganan' => ['sometimes', 'required', 'in:Menunggu Verifikasi,Sedang Diproses,Diproses,Selesai,Ditolak'],
+            'status' => ['sometimes', 'required', 'in:Menunggu Verifikasi,Sedang Diproses,Diproses,Selesai,Ditolak'],
+            'catatan_admin' => ['nullable', 'string', 'max:5000'],
+            'pesan_pelapor' => ['nullable', 'string', 'max:2000'],
+        ]);
 
-        $catatanBaru = $request->input('catatan_admin') 
-                    ?? $laporan->catatan_admin;
+        $statusBaru = $validated['status_penanganan'] ?? $validated['status'] ?? $laporan->status_penanganan;
+        $pesanPelapor = trim($validated['pesan_pelapor'] ?? '');
+        $riwayat = $laporan->riwayat_status ?? [];
+
+        if ($statusBaru !== $laporan->status_penanganan || $pesanPelapor !== '') {
+            $riwayat[] = [
+                'status' => $statusBaru,
+                'pesan' => $pesanPelapor ?: null,
+                'pada' => now()->toIso8601String(),
+                'oleh' => auth()->user()->name,
+            ];
+        }
 
         $laporan->status_penanganan = $statusBaru;
-        $laporan->catatan_admin     = $catatanBaru;
+        $laporan->catatan_admin = $validated['catatan_admin'] ?? $laporan->catatan_admin;
+        $laporan->pesan_pelapor = $pesanPelapor !== '' ? $pesanPelapor : $laporan->pesan_pelapor;
+        $laporan->riwayat_status = $riwayat;
         $laporan->save();
 
         return redirect()->route('laporan.index')
