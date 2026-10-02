@@ -61,8 +61,8 @@ Route::middleware(['auth', EnsureAdmin::class])->group(function () {
 
     // Manajemen Pengguna
     Route::get('/pengguna', function () {
-        $penggunas = User::latest()->get();
-        return view('pengguna.index', compact('penggunas'));
+    $penggunas = User::where('role', 'pengguna')->latest()->get();
+    return view('pengguna.index', compact('penggunas'));
     })->name('pengguna.index');
 
     Route::get('/pengguna/login', function () {

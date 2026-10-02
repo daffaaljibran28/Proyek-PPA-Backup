@@ -70,19 +70,24 @@
             <div><p class="text-xs text-slate-500">Penjelasan Kejadian</p><p id="summaryStory" class="mt-1 max-h-32 overflow-y-auto whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm leading-6"></p></div>
             <div>
                 <label for="foto" class="block text-sm font-semibold">Bukti Foto <span class="text-rose-700">*</span></label>
-                @if ($fotoTersimpan)
-                    <p class="mt-1 text-xs text-slate-500">{{ count($fotoTersimpan) }} foto sudah tersimpan. Anda dapat menambahkan foto hingga batas 3.</p>
+                @if (count($fotoTersimpan) > 0)
+                    <p class="mt-1 text-xs text-slate-500">{{ count($fotoTersimpan) }} foto sudah tersimpan. Jika Anda memilih foto baru di bawah ini, foto baru akan digunakan (maksimal 3 foto).</p>
                 @else
                     <p class="mt-1 text-xs text-slate-500">Wajib 1–3 foto. Format JPG, JPEG, PNG; maksimal 5 MB per foto.</p>
                 @endif
                 <input id="foto" name="foto[]" type="file" form="reportForm" accept=".jpg,.jpeg,.png,image/jpeg,image/png" multiple class="mt-3 block w-full rounded-lg border border-slate-300 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-rose-50 file:px-3 file:py-2 file:font-semibold file:text-rose-700">
                 <p id="photoClientError" role="alert" class="mt-2 hidden text-sm text-rose-700"></p>
                 <div id="photoPreview" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"></div>
-                @if ($fotoTersimpan)
-                    <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        @foreach ($fotoTersimpan as $index => $path)
-                            @if (str_starts_with($path, 'laporan/' . $laporan->id_laporan . '/'))<img src="{{ route('pelapor.laporan.evidence', [$laporan->id_laporan, $index]) }}" alt="Bukti foto tersimpan" class="aspect-square w-full rounded-lg border border-slate-200 object-cover">@endif
-                        @endforeach
+                @if (count($fotoTersimpan) > 0)
+                    <div id="existingPhotosSection" class="mt-3">
+                        <p class="text-xs text-slate-400 mb-2">Foto tersimpan saat ini:</p>
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            @foreach ($fotoTersimpan as $index => $path)
+                                @if (str_starts_with($path, 'laporan/' . $laporan->id_laporan . '/'))
+                                    <img src="{{ route('pelapor.laporan.evidence', [$laporan->id_laporan, $index]) }}" alt="Bukti foto tersimpan" class="aspect-square w-full rounded-lg border border-slate-200 object-cover">
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 @endif
             </div>
@@ -128,15 +133,23 @@
             preview.replaceChildren();
             error.classList.add('hidden');
             const files = Array.from(photoInput.files || []);
+            
+            const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/pjpeg'];
+            
             const invalid = files.find(file => {
                 const extension = file.name.split('.').pop().toLowerCase();
-                return !allowedPhotoExtensions.includes(extension) || !['image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024;
+                const isValidExt = allowedPhotoExtensions.includes(extension);
+                const isValidMime = !file.type || allowedMimeTypes.includes(file.type);
+                return !isValidExt || !isValidMime || file.size > 5 * 1024 * 1024;
             });
-            if (existingPhotoCount + files.length > 3) {
-                error.textContent = 'Maksimal 3 foto bukti untuk satu pengaduan.';
+
+            // Jika mengunggah foto baru, batasi maksimal 3 foto baru yang dipilih
+            if (files.length > 3) {
+                error.textContent = 'Maksimal 3 foto bukti baru yang dapat diunggah.';
             } else if (invalid) {
                 error.textContent = invalid.size > 5 * 1024 * 1024 ? 'Ukuran setiap foto maksimal 5 MB.' : 'Format foto yang diperbolehkan hanya JPG, JPEG, dan PNG.';
             }
+
             if (error.textContent) {
                 error.classList.remove('hidden');
                 photoInput.setCustomValidity(error.textContent);
@@ -157,7 +170,8 @@
                 event.preventDefault();
                 return;
             }
-            if (existingPhotoCount + (photoInput.files?.length || 0) < 1) {
+            // Jika belum ada foto sama sekali (baik foto tersimpan maupun baru)
+            if (existingPhotoCount === 0 && (photoInput.files?.length || 0) < 1) {
                 event.preventDefault();
                 document.getElementById('photoClientError').textContent = 'Unggah minimal 1 foto bukti.';
                 document.getElementById('photoClientError').classList.remove('hidden');

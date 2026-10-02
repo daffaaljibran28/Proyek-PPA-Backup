@@ -69,7 +69,7 @@ class PelaporController extends Controller
         $laporanTerakhir = Laporan::where('id_pengguna', $request->user()->id)->latest()->first();
         if ($laporanTerakhir && !in_array($laporanTerakhir->status_penanganan, ['Selesai', 'Ditolak'], true)) {
             return redirect()->route('pelapor.laporan.show', $laporanTerakhir->id_laporan)
-            ->with('error', 'Anda masih memiliki pengaduan yang sedang ditangani.');
+                ->with('error', 'Anda masih memiliki pengaduan yang sedang ditangani.');
         }
 
         return view('pelapor.laporan.form', [
@@ -85,7 +85,7 @@ class PelaporController extends Controller
         $laporanTerakhir = Laporan::where('id_pengguna', $request->user()->id)->latest()->first();
         if ($laporanTerakhir && !in_array($laporanTerakhir->status_penanganan, ['Selesai', 'Ditolak'], true)) {
             return redirect()->route('pelapor.laporan.show', $laporanTerakhir->id_laporan)
-            ->with('error', 'Anda masih memiliki pengaduan yang sedang ditangani.');
+                ->with('error', 'Anda masih memiliki pengaduan yang sedang ditangani.');
         }
 
         $validated = $this->validateReport($request);
@@ -201,9 +201,12 @@ class PelaporController extends Controller
         $validated = $this->validateReport($request, $laporan);
         $photos = $validated['foto'] ?? [];
         unset($validated['foto']);
+        
         $laporan->update($validated);
-        if ($photos) {
-            $this->appendPhotos($laporan, $photos);
+        
+        // Jika user mengunggah foto baru saat edit, ganti foto lama dengan yang baru
+        if (!empty($photos)) {
+            $this->replacePhotos($laporan, $photos);
         }
 
         return redirect()->route('pelapor.laporan.show', $laporan->id_laporan)
@@ -333,10 +336,14 @@ class PelaporController extends Controller
     {
         $existingCount = $laporan ? count($this->photoReferences($laporan)) : 0;
         $rules = $this->reportRules();
+        
+        // Jika sedang edit ($laporan ada), foto bersifat opsional
         $rules['foto'] = $laporan && $existingCount > 0
-            ? ['sometimes', 'array', 'max:3']
+            ? ['nullable', 'array', 'max:3']
             : ['required', 'array', 'min:1', 'max:3'];
+            
         $rules['foto.*'] = ['required', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:5120'];
+        
         $validated = $request->validate($rules, [
             'lokasi_kejadian.min' => 'Lokasi kejadian minimal 4 karakter.',
             'lokasi_kejadian.max' => 'Lokasi kejadian maksimal 50 karakter.',
@@ -351,7 +358,8 @@ class PelaporController extends Controller
             'foto.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
         ]);
 
-        if ($existingCount + count($validated['foto'] ?? []) > 3) {
+        // Jika form baru, pastikan foto tidak lebih dari 3
+        if (!$laporan && count($validated['foto'] ?? []) > 3) {
             throw ValidationException::withMessages(['foto' => 'Maksimal 3 foto bukti untuk satu pengaduan.']);
         }
 
@@ -361,6 +369,37 @@ class PelaporController extends Controller
     private function photoReferences(Laporan $laporan): array
     {
         return array_values(array_filter(array_map('trim', explode(',', (string) $laporan->bukti_lampiran))));
+    }
+
+    private function replacePhotos(Laporan $laporan, array $photos): void
+    {
+        if (empty($photos)) {
+            return;
+        }
+
+        $directory = 'laporan/' . $laporan->id_laporan;
+
+        // Hapus file foto lama di storage agar tidak menumpuk
+        if (Storage::disk('local')->exists($directory)) {
+            Storage::disk('local')->deleteDirectory($directory);
+        }
+
+        Storage::disk('local')->makeDirectory($directory);
+        $newReferences = [];
+
+        foreach ($photos as $photo) {
+            $extension = strtolower($photo->getClientOriginalExtension());
+            $filename = Str::random(16) . '.' . $extension;
+            $newReferences[] = $photo->storeAs($directory, $filename, 'local');
+        }
+
+        $value = implode(', ', $newReferences);
+        if (strlen($value) > 255) {
+            throw ValidationException::withMessages(['foto' => 'Nama berkas bukti terlalu panjang untuk disimpan.']);
+        }
+
+        $laporan->bukti_lampiran = $value;
+        $laporan->save();
     }
 
     private function appendPhotos(Laporan $laporan, array $photos): void

@@ -97,7 +97,7 @@
         <div class="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
                 <h3 class="font-bold text-gray-900 text-base">Laporan Masuk Terbaru</h3>
-                <p class="text-xs text-gray-400 mt-0.5">5 laporan terbaru yang diterima sistem</p>
+                <p class="text-xs text-gray-400 mt-0.5">Daftar laporan terbaru yang diterima sistem</p>
             </div>
             <a href="{{ route('laporan.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 px-3.5 py-2 rounded-xl hover:bg-rose-100 transition">
                 <span>Lihat Semua</span>
