@@ -21,17 +21,18 @@ class PelaporAuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string'], 
             'password' => ['required', 'string'],
         ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Masukkan alamat email yang valid.',
+            'email.required' => 'Email atau Nomor HP wajib diisi.',
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
-        if (!Auth::attempt($credentials + ['role' => 'pengguna'], $request->boolean('remember'))) {
+        $field = filter_var($credentials['email'], FILTER_VALIDATE_EMAIL) ? 'email' : 'no_hp';
+
+        if (!Auth::attempt([$field => $credentials['email'], 'password' => $credentials['password'], 'role' => 'pengguna'], $request->boolean('remember'))) {
             return back()->withInput($request->only('email', 'remember'))->withErrors([
-                'email' => 'Email atau kata sandi tidak sesuai dengan akun pelapor.',
+                'email' => 'Email/Nomor HP atau kata sandi tidak sesuai dengan akun pelapor.',
             ]);
         }
 
@@ -82,6 +83,49 @@ class PelaporAuthController extends Controller
         return redirect()->route('pelapor.login')->with('success', 'Pendaftaran berhasil. Silakan masuk dengan akun Anda.');
     }
 
+    /**
+     * Menampilkan halaman form atur ulang sandi.
+     */
+    public function showLinkRequestForm()
+    {
+        return view('pelapor.auth.forgot-password');
+    }
+
+    /**
+     * Memproses penyimpanan kata sandi baru secara langsung.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*]).+$/', 'confirmed'],
+        ], [
+            'email.required' => 'Email atau Nomor HP wajib diisi.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+            'password.regex' => 'Kata sandi harus memiliki huruf besar, huruf kecil, angka, dan simbol (!@#$%^&*).',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+        ]);
+
+        $field = filter_var($request->email, FILTER_VALIDATE_EMAIL) ? 'email' : 'no_hp';
+
+        $user = User::where($field, $request->email)->where('role', 'pengguna')->first();
+
+        if (!$user) {
+            return back()->withInput()->withErrors([
+                'email' => 'Akun dengan Email atau Nomor HP tersebut tidak ditemukan.',
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return redirect()->route('pelapor.login')->with('success', 'Kata sandi berhasil diubah! Silakan masuk dengan kata sandi baru.');
+    }
+
+    /**
+     * Memproses keluar (logout) pelapor.
+     */
     public function logout(Request $request)
     {
         Auth::logout();

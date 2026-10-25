@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Laporan;
+use App\Models\Informasi; // Ditambahkan untuk mengambil data dari tabel informasis
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -82,20 +83,45 @@ class PelaporController extends Controller
 
     public function store(Request $request)
     {
-        $laporanTerakhir = Laporan::where('id_pengguna', $request->user()->id)->latest()->first();
+        $userId = $request->user()->id;
+
+        // 1. Cek apakah masih ada pengaduan yang aktif (belum Selesai/Ditolak)
+        $laporanTerakhir = Laporan::where('id_pengguna', $userId)->latest()->first();
         if ($laporanTerakhir && !in_array($laporanTerakhir->status_penanganan, ['Selesai', 'Ditolak'], true)) {
             return redirect()->route('pelapor.laporan.show', $laporanTerakhir->id_laporan)
                 ->with('error', 'Anda masih memiliki pengaduan yang sedang ditangani.');
         }
 
+        // 2. Kuota harian per pengguna (maksimal 2 pengaduan per hari per akun)
+        $countTodayUser = Laporan::where('id_pengguna', $userId)
+            ->whereDate('created_at', today())
+            ->count();
+
+        if ($countTodayUser >= 2) {
+            return redirect()->route('pelapor.laporan.index')
+                ->with('error', 'Anda telah mencapai batas maksimal 2 pengaduan per hari. Silakan coba kembali esok hari.');
+        }
+
         $validated = $this->validateReport($request);
+
+        // 3. Cek duplikat kronologi (mencegah spam teks yang sama persis)
+        $isDuplicate = Laporan::where('id_pengguna', $userId)
+            ->where('kronologi', $validated['kronologi'])
+            ->exists();
+
+        if ($isDuplicate) {
+            return back()->withInput()->withErrors([
+                'kronologi' => 'Isi kronologi pengaduan ini sama persis dengan laporan Anda sebelumnya. Mohon buat uraian kronologi yang berbeda untuk menghindari redundansi data.',
+            ]);
+        }
+
         $photos = $validated['foto'];
         unset($validated['foto']);
         $nomorLaporan = $this->newReportNumber();
 
         $laporan = Laporan::create($validated + [
             'nomor_laporan' => $nomorLaporan,
-            'id_pengguna' => $request->user()->id,
+            'id_pengguna' => $userId,
             'nama_pelapor' => $request->user()->name,
             'status_penanganan' => 'Menunggu Verifikasi',
             'riwayat_status' => [[
@@ -105,6 +131,7 @@ class PelaporController extends Controller
                 'oleh' => 'Sistem',
             ]],
         ]);
+        
         $this->appendPhotos($laporan, $photos);
 
         return redirect()->route('pelapor.laporan.show', $laporan->id_laporan)
@@ -204,7 +231,6 @@ class PelaporController extends Controller
         
         $laporan->update($validated);
         
-        // Jika user mengunggah foto baru saat edit, ganti foto lama dengan yang baru
         if (!empty($photos)) {
             $this->replacePhotos($laporan, $photos);
         }
@@ -223,7 +249,10 @@ class PelaporController extends Controller
 
     public function information()
     {
-        return view('pelapor.information', ['edukasi' => config('ppa_education.materials', [])]);
+        // Diubah menggunakan $informasis agar sinkron dengan view pelapor.information
+        $informasis = Informasi::where('status', 'published')->latest()->get();
+
+        return view('pelapor.information', compact('informasis'));
     }
 
     public function emergency()
@@ -337,7 +366,6 @@ class PelaporController extends Controller
         $existingCount = $laporan ? count($this->photoReferences($laporan)) : 0;
         $rules = $this->reportRules();
         
-        // Jika sedang edit ($laporan ada), foto bersifat opsional
         $rules['foto'] = $laporan && $existingCount > 0
             ? ['nullable', 'array', 'max:3']
             : ['required', 'array', 'min:1', 'max:3'];
@@ -358,7 +386,6 @@ class PelaporController extends Controller
             'foto.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
         ]);
 
-        // Jika form baru, pastikan foto tidak lebih dari 3
         if (!$laporan && count($validated['foto'] ?? []) > 3) {
             throw ValidationException::withMessages(['foto' => 'Maksimal 3 foto bukti untuk satu pengaduan.']);
         }
@@ -379,7 +406,6 @@ class PelaporController extends Controller
 
         $directory = 'laporan/' . $laporan->id_laporan;
 
-        // Hapus file foto lama di storage agar tidak menumpuk
         if (Storage::disk('local')->exists($directory)) {
             Storage::disk('local')->deleteDirectory($directory);
         }
@@ -394,10 +420,6 @@ class PelaporController extends Controller
         }
 
         $value = implode(', ', $newReferences);
-        if (strlen($value) > 255) {
-            throw ValidationException::withMessages(['foto' => 'Nama berkas bukti terlalu panjang untuk disimpan.']);
-        }
-
         $laporan->bukti_lampiran = $value;
         $laporan->save();
     }
@@ -418,20 +440,16 @@ class PelaporController extends Controller
         }
 
         $value = implode(', ', $references);
-        if (strlen($value) > 255) {
-            throw ValidationException::withMessages(['foto' => 'Nama berkas bukti terlalu panjang untuk disimpan.']);
-        }
-
         $laporan->bukti_lampiran = $value;
         $laporan->save();
     }
 
     private function newReportNumber(): string
     {
-        do {
-            $number = 'LAP-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
-        } while (Laporan::where('nomor_laporan', $number)->exists());
+        $today = now()->format('Ymd');
+        $countToday = Laporan::whereDate('created_at', today())->count();
+        $sequence = str_pad($countToday + 1, 3, '0', STR_PAD_LEFT);
 
-        return $number;
+        return 'LAP-' . $today . '-' . $sequence;
     }
 }
