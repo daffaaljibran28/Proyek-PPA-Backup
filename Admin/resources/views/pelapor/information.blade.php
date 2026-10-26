@@ -19,7 +19,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <h3 class="text-sm font-bold text-gray-900">{{ $item->judul }}</h3>
                     <span class="text-[11px] font-medium text-slate-400 bg-slate-50 px-3 py-1 rounded-full w-fit">
-                        {{ $item->tanggal_publish ? \Carbon\Carbon::parse($item->tanggal_publish)->format('d M Y') : $item->created_at->format('d M Y') }}
+                        {{ $item->tanggal_publish ? \Carbon\Carbon::parse($item->tanggal_publish)->translatedFormat('d M Y') : '-' }}
                     </span>
                 </div>
 
@@ -30,8 +30,8 @@
                 </div>
                 @endif
 
-                <!-- Isi Konten / Deskripsi -->
-                <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                <!-- Isi Konten / Deskripsi (Ditambahkan break-words agar teks panjang otomatis turun ke bawah) -->
+                <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-line break-words">
                     {{ $item->konten }}
                 </p>
             </div>

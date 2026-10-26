@@ -10,11 +10,11 @@
             </span>
         </div>
 
-        <!-- Filter & Tombol Tambah (Filter dikompakkan di kiri, Tombol Tambah diperbesar di kanan) -->
+        <!-- Filter & Tombol Tambah -->
         <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6">
             <!-- Form Filter (Kiri) -->
             <form method="GET" action="{{ route('admin.informasi.index') }}" class="flex flex-wrap items-center gap-3 flex-1">
-                <!-- Search Bar (Lebih kecil/kompak) -->
+                <!-- Search Bar -->
                 <div class="relative w-full md:w-64">
                     <input type="text" name="search" value="{{ request('search') }}" autocomplete="off" placeholder="Cari judul informasi..." 
                         class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 focus:ring-rose-500 focus:border-rose-500 shadow-sm">
@@ -33,7 +33,7 @@
                 </select>
             </form>
 
-            <!-- Tombol Tambah Informasi (Kanan - Lebih Besar & Menonjol) -->
+            <!-- Tombol Tambah Informasi (Kanan) -->
             <a href="{{ route('admin.informasi.create') }}" class="bg-rose-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl hover:bg-rose-600 transition inline-flex items-center justify-center shadow-md shadow-rose-500/20 shrink-0">
                 + Tambah Informasi
             </a>
@@ -50,7 +50,7 @@
         <div class="bg-white p-6 rounded-3xl border border-rose-100/70 shadow-sm">
             <table class="w-full text-left border-collapse">
                 <thead>
-                <tr class="bg-rose-50/50 text-gray-500 text-xs font-bold uppercase border-b border-rose-100">
+                    <tr class="bg-rose-50/50 text-gray-500 text-xs font-bold uppercase border-b border-rose-100">
                         <th class="py-3 px-4">No</th>
                         <th class="py-3 px-4">Judul Informasi</th>
                         <th class="py-3 px-4">Status</th>
@@ -73,7 +73,7 @@
                             @endif
                         </td>
                         <td class="py-4 px-4 text-gray-500">
-                            {{ $item->tanggal_publish ? \Carbon\Carbon::parse($item->tanggal_publish)->format('d M Y') : '-' }}
+                            {{ $item->tanggal_publish ? \Carbon\Carbon::parse($item->tanggal_publish)->translatedFormat('d M Y') : '-' }}
                         </td>
                         <td class="py-4 px-4 text-center">
                             <div class="inline-flex items-center gap-1.5">
