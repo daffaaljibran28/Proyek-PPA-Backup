@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'theme.dart';
 import 'header.dart';
 import 'form2.dart';
+import 'map_picker_dialog.dart';
 
 class Form1Page extends StatefulWidget {
   const Form1Page({super.key});
@@ -40,7 +41,8 @@ class _Form1PageState extends State<Form1Page> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(Theme.of(context).textTheme),
+            textTheme: GoogleFonts.plusJakartaSansTextTheme(
+                Theme.of(context).textTheme),
             colorScheme: const ColorScheme.light(
               primary: AppTheme.primaryPink,
               onPrimary: Colors.white,
@@ -73,42 +75,84 @@ class _Form1PageState extends State<Form1Page> {
               isExpanded: true,
               value: _kategori,
               underline: const SizedBox(),
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87),
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, color: Colors.black87),
               items: _listKategori
                   .map((k) => DropdownMenuItem(
                       value: k,
-                      child: Text(k, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87))))
+                      child: Text(k,
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13, color: Colors.black87))))
                   .toList(),
               onChanged: (v) => setState(() => _kategori = v!),
             ),
           ),
           const SizedBox(height: 16),
-
           _label('Sebagai'),
           _dropdownContainer(
             DropdownButton<String>(
               isExpanded: true,
               value: _sebagai,
               underline: const SizedBox(),
-              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87),
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, color: Colors.black87),
               items: _listSebagai
                   .map((s) => DropdownMenuItem(
                       value: s,
-                      child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87))))
+                      child: Text(s,
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13, color: Colors.black87))))
                   .toList(),
               onChanged: (v) => setState(() => _sebagai = v!),
             ),
           ),
           const SizedBox(height: 16),
-
-          _label('Lokasi Kejadian'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.between,
+            children: [
+              _label('Lokasi Kejadian'),
+              InkWell(
+                onTap: () async {
+                  final selected = await showDialog<String>(
+                    context: context,
+                    builder: (context) =>
+                        MapPickerDialog(initialLocation: _lokasiCtrl.text),
+                  );
+                  if (selected != null && selected.isNotEmpty) {
+                    setState(() {
+                      _lokasiCtrl.text = selected;
+                    });
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.map_outlined,
+                          size: 14, color: AppTheme.primaryPink),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Pilih di Peta (Google Maps)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryPink,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           TextField(
             controller: _lokasiCtrl,
-            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87),
-            decoration: _inputDeco('Isi lokasi kejadian secara lengkap...', Icons.location_on_outlined),
+            style: GoogleFonts.plusJakartaSans(
+                fontSize: 13, color: Colors.black87),
+            decoration: _inputDeco('Isi lokasi kejadian secara lengkap...',
+                Icons.location_on_outlined),
           ),
           const SizedBox(height: 16),
-
           _label('Tanggal Kejadian'),
           InkWell(
             onTap: _pilihTanggal,
@@ -116,24 +160,28 @@ class _Form1PageState extends State<Form1Page> {
             child: IgnorePointer(
               child: TextField(
                 controller: _tanggalCtrl,
-                style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87),
-                decoration: _inputDeco('Pilih tanggal kejadian...', Icons.calendar_today_outlined),
+                style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13, color: Colors.black87),
+                decoration: _inputDeco(
+                    'Pilih tanggal kejadian...', Icons.calendar_today_outlined),
               ),
             ),
           ),
           const SizedBox(height: 16),
-
           _label('Penjelasan Kejadian'),
           TextField(
             controller: _kronologiCtrl,
             maxLines: 4,
-            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.black87),
+            style: GoogleFonts.plusJakartaSans(
+                fontSize: 13, color: Colors.black87),
             decoration: InputDecoration(
               hintText: 'Ceritakan kronologi kejadian secara singkat...',
-              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.grey.shade400),
+              hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 13, color: Colors.grey.shade400),
               filled: true,
               fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppTheme.borderPink)),
@@ -142,24 +190,26 @@ class _Form1PageState extends State<Form1Page> {
                   borderSide: const BorderSide(color: AppTheme.borderPink)),
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.primaryPink, width: 1.5)),
+                  borderSide: const BorderSide(
+                      color: AppTheme.primaryPink, width: 1.5)),
             ),
           ),
           const SizedBox(height: 28),
-
           SizedBox(
             height: 48,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryPink,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12))),
               onPressed: () async {
                 if (_lokasiCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Harap isi lokasi kejadian!',
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                          style:
+                              GoogleFonts.plusJakartaSans(color: Colors.white)),
                     ),
                   );
                   return;
@@ -168,7 +218,8 @@ class _Form1PageState extends State<Form1Page> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Harap pilih tanggal kejadian!',
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                          style:
+                              GoogleFonts.plusJakartaSans(color: Colors.white)),
                     ),
                   );
                   return;
@@ -177,7 +228,8 @@ class _Form1PageState extends State<Form1Page> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Harap isi kronologi kejadian!',
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+                          style:
+                              GoogleFonts.plusJakartaSans(color: Colors.white)),
                     ),
                   );
                   return;
@@ -199,7 +251,9 @@ class _Form1PageState extends State<Form1Page> {
               child: Text(
                 'Lanjut',
                 style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -229,11 +283,13 @@ class _Form1PageState extends State<Form1Page> {
 
   InputDecoration _inputDeco(String hint, IconData icon) => InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.grey.shade400),
+        hintStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 13, color: Colors.grey.shade400),
         prefixIcon: Icon(icon, color: AppTheme.primaryPink, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: AppTheme.borderPink)),
@@ -242,6 +298,7 @@ class _Form1PageState extends State<Form1Page> {
             borderSide: const BorderSide(color: AppTheme.borderPink)),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.primaryPink, width: 1.5)),
+            borderSide:
+                const BorderSide(color: AppTheme.primaryPink, width: 1.5)),
       );
 }
