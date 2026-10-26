@@ -6,6 +6,7 @@ use App\Models\Laporan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use Carbon\Carbon; // <-- Pastikan class Carbon di-import
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Mengatur bahasa Carbon agar format tanggal otomatis dalam Bahasa Indonesia (misal: Oktober)
+        Carbon::setLocale('id');
+
         View::composer(['pelapor.layout', 'pelapor.dashboard'], function ($view): void {
             $user = auth()->user();
             $notifications = collect();

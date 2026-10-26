@@ -12,7 +12,7 @@
     @endif
 
     <!-- Header Dashboard -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-bold text-rose-600 tracking-tight">Selamat datang, {{ Auth::user()->name ?? 'Admin' }}</h1>
             <p class="text-xs text-gray-500 mt-1">Rangkuman data dan status penanganan kasus terkini.</p>
@@ -25,70 +25,99 @@
         </div>
     </div>
 
-    <!-- 4 Kartu Statistik -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <!-- Form Filter Harian / Bulanan (Tanggal masa depan dibatasi dengan max) -->
+    <form method="GET" action="{{ route('dashboard') }}" class="mb-6 flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
+        <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Periode Statistik:</label>
+            <select name="filter" onchange="this.form.submit()" class="rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-rose-500">
+                <option value="bulan" {{ ($filter ?? 'bulan') === 'bulan' ? 'selected' : '' }}>Bulanan</option>
+                <option value="hari" {{ ($filter ?? '') === 'hari' ? 'selected' : '' }}>Harian</option>
+            </select>
+        </div>
+
+        @if(($filter ?? 'bulan') === 'hari')
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Pilih Tanggal:</label>
+                <input type="date" name="tanggal" value="{{ $tanggal ?? date('Y-m-d') }}" max="{{ date('Y-m-d') }}" onchange="this.form.submit()" class="rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-rose-500">
+            </div>
+        @else
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Pilih Bulan:</label>
+                <input type="month" name="bulan" value="{{ $bulan ?? date('Y-m') }}" onchange="this.form.submit()" class="rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-rose-500">
+            </div>
+        @endif
+    </form>
+
+    <!-- 5 Kartu Statistik (Total, Menunggu, Diproses, Selesai, Ditolak) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <!-- Total Laporan -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:border-gray-200 transition">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Laporan</span>
-                <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Laporan</span>
+                <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
                 </div>
             </div>
-            <div class="flex items-baseline gap-2">
-                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ $totalLaporan }}</h2>
-            </div>
+            <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ $totalLaporan ?? 0 }}</h2>
             <p class="text-[11px] text-gray-400 mt-1">Keseluruhan data laporan</p>
         </div>
 
         <!-- Menunggu Verifikasi -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:border-gray-200 transition">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Menunggu Verifikasi</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Menunggu</span>
+                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
-            <div class="flex items-baseline gap-2">
-                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ $menungguVerifikasi }}</h2>
-            </div>
+            <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ $menungguVerifikasi ?? 0 }}</h2>
             <p class="text-[11px] text-amber-600 font-medium mt-1">Memerlukan peninjauan</p>
         </div>
 
         <!-- Sedang Diproses -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:border-gray-200 transition">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Sedang Diproses</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Diproses</span>
+                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
                 </div>
             </div>
-            <div class="flex items-baseline gap-2">
-                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ $sedangDiproses }}</h2>
-            </div>
-            <p class="text-[11px] text-blue-600 font-medium mt-1">Tindak lanjut tim lapangan</p>
+            <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ $sedangDiproses ?? 0 }}</h2>
+            <p class="text-[11px] text-blue-600 font-medium mt-1">Tindak lanjut lapangan</p>
         </div>
 
         <!-- Selesai -->
         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:border-gray-200 transition">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Telah Selesai</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Selesai</span>
+                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
-            <div class="flex items-baseline gap-2">
-                <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">{{ $selesai }}</h2>
-            </div>
+            <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ $selesai ?? 0 }}</h2>
             <p class="text-[11px] text-emerald-600 font-medium mt-1">Selesai ditangani</p>
+        </div>
+
+        <!-- Ditolak -->
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-xs hover:border-gray-200 transition">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Ditolak</span>
+                <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </div>
+            </div>
+            <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">{{ $ditolak ?? 0 }}</h2>
+            <p class="text-[11px] text-rose-600 font-medium mt-1">Laporan tidak valid</p>
         </div>
     </div>
 
@@ -97,7 +126,7 @@
         <div class="p-6 border-b border-gray-100 flex items-center justify-between">
             <div>
                 <h3 class="font-bold text-gray-900 text-base">Laporan Masuk Terbaru</h3>
-                <p class="text-xs text-gray-400 mt-0.5">Daftar laporan terbaru yang diterima sistem</p>
+                <p class="text-xs text-gray-400 mt-0.5">Daftar laporan terbaru yang diterima sistem berdasarkan periode terpilih</p>
             </div>
             <a href="{{ route('laporan.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 px-3.5 py-2 rounded-xl hover:bg-rose-100 transition">
                 <span>Lihat Semua</span>
@@ -140,17 +169,22 @@
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                     Sedang Diproses
                                 </span>
-                            @else
+                            @elseif($item->status_penanganan == 'Selesai')
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                     Selesai
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/60">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    Ditolak
                                 </span>
                             @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-gray-400">Belum ada laporan masuk.</td>
+                        <td colspan="5" class="py-8 text-center text-gray-400">Belum ada laporan masuk pada periode ini.</td>
                     </tr>
                     @endforelse
                 </tbody>

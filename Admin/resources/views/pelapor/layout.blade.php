@@ -27,7 +27,7 @@
                     </div>
                 </details>
                 <a href="{{ route('pelapor.laporan.index') }}" class="block rounded-lg px-3 py-2.5 {{ request()->routeIs('pelapor.laporan.*') && !request()->routeIs('pelapor.laporan.create') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Riwayat Pengaduan</a>
-                <a href="{{ route('pelapor.information') }}" class="block rounded-lg px-3 py-2.5 {{ request()->routeIs('pelapor.information') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Informasi/Edukasi</a>
+                <a href="{{ route('pelapor.information') }}" class="block rounded-lg px-3 py-2.5 {{ request()->routeIs('pelapor.information') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Informasi & Edukasi</a>
                 <a href="{{ route('pelapor.profile') }}" class="block rounded-lg px-3 py-2.5 {{ request()->routeIs('pelapor.profile') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Profil</a>
             </nav>
             <div class="mt-auto border-t border-slate-100 pt-5">
@@ -82,7 +82,7 @@
                         <div class="absolute left-0 z-20 mt-1 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"><a href="{{ route('pelapor.laporan.create') }}" class="block rounded-md px-3 py-2 text-slate-700 hover:bg-rose-50">Laporan Biasa</a><a href="{{ route('pelapor.emergency') }}" class="block rounded-md px-3 py-2 text-slate-700 hover:bg-rose-50">Emergency Call</a></div>
                     </details>
                     <a href="{{ route('pelapor.laporan.index') }}" class="rounded-lg px-3 py-2 text-slate-600">Riwayat</a>
-                    <a href="{{ route('pelapor.information') }}" class="rounded-lg px-3 py-2 text-slate-600">Informasi/Edukasi</a>
+                    <a href="{{ route('pelapor.information') }}" class="rounded-lg px-3 py-2 text-slate-600">Informasi & Edukasi</a>
                     <a href="{{ route('pelapor.profile') }}" class="rounded-lg px-3 py-2 text-slate-600">Profil</a>
                 </nav>
             </header>

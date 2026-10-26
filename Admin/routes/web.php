@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PelaporAuthController;
 use App\Http\Controllers\PelaporController;
+use App\Http\Controllers\AdminInformasiController;
 use App\Http\Middleware\EnsurePelapor;
 use App\Http\Middleware\EnsureAdmin;
 use App\Models\Laporan;
@@ -14,15 +15,43 @@ use Carbon\Carbon;
 use App\Http\Controllers\AdminAuthController;
 use Illuminate\Support\Facades\Hash;
 
+// ========================================================
+// Rute Utama / Beranda (Otomatis Deteksi Role Pengguna)
+// ========================================================
+Route::get('/', function () {
+    if (!auth()->check()) {
+        return redirect()->route('login');
+    }
+    
+    // Jika admin, arahkan ke dashboard admin
+    if (auth()->user()->role === 'admin' || (auth()->user()->is_admin ?? false)) {
+        return redirect()->route('dashboard');
+    }
+    
+    // Jika pelapor, arahkan ke beranda pelapor
+    return redirect()->route('pelapor.home');
+});
+
+// ========================================================
+// Autentikasi Pelapor (Login, Register, Lupa Password)
+// ========================================================
 Route::prefix('pelapor')->name('pelapor.')->group(function () {
     Route::get('/login', [PelaporAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [PelaporAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
+    
     Route::get('/register', [PelaporAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [PelaporAuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
+
+    // Rute Lupa / Ganti Password Langsung
+    Route::get('/lupa-password', [PelaporAuthController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/lupa-password', [PelaporAuthController::class, 'updatePassword'])->middleware('throttle:5,1')->name('password.update');
 });
 
+// ========================================================
+// Dashboard & Fitur Utama Pelapor (Wajib Login Pelapor)
+// ========================================================
 Route::prefix('pelapor')->name('pelapor.')->middleware(EnsurePelapor::class)->group(function () {
-    Route::get('/', [PelaporController::class, 'dashboard'])->name('home');
+    Route::get('/home', [PelaporController::class, 'dashboard'])->name('home');
     Route::post('/logout', [PelaporAuthController::class, 'logout'])->name('logout');
     Route::get('/pengaduan', [PelaporController::class, 'index'])->name('laporan.index');
     Route::get('/pengaduan/buat', [PelaporController::class, 'create'])->name('laporan.create');
@@ -53,16 +82,24 @@ Route::match(['get', 'post'], '/logout', [AdminAuthController::class, 'logout'])
 // ========================================================
 Route::middleware(['auth', EnsureAdmin::class])->group(function () {
     // Dashboard & Laporan
-    Route::get('/', [LaporanController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard-admin', [LaporanController::class, 'dashboard'])->name('dashboard');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/{id}', [LaporanController::class, 'show'])->name('laporan.show');
     Route::get('/laporan/{id}/bukti/{index}', [LaporanController::class, 'evidence'])->whereNumber('index')->name('laporan.evidence');
     Route::put('/laporan/{id}/status', [LaporanController::class, 'updateStatus'])->name('laporan.update-status');
 
+    // Manajemen Informasi & Edukasi oleh Admin
+    Route::get('/admin/informasi', [AdminInformasiController::class, 'index'])->name('admin.informasi.index');
+    Route::get('/admin/informasi/buat', [AdminInformasiController::class, 'create'])->name('admin.informasi.create');
+    Route::post('/admin/informasi', [AdminInformasiController::class, 'store'])->name('admin.informasi.store');
+    Route::get('/admin/informasi/{id}/edit', [AdminInformasiController::class, 'edit'])->name('admin.informasi.edit');
+    Route::put('/admin/informasi/{id}', [AdminInformasiController::class, 'update'])->name('admin.informasi.update');
+    Route::delete('/admin/informasi/{id}', [AdminInformasiController::class, 'destroy'])->name('admin.informasi.destroy');
+
     // Manajemen Pengguna
     Route::get('/pengguna', function () {
-    $penggunas = User::where('role', 'pengguna')->latest()->get();
-    return view('pengguna.index', compact('penggunas'));
+        $penggunas = User::where('role', 'pengguna')->latest()->get();
+        return view('pengguna.index', compact('penggunas'));
     })->name('pengguna.index');
 
     Route::get('/pengguna/login', function () {
@@ -124,7 +161,7 @@ Route::middleware(['auth', EnsureAdmin::class])->group(function () {
         }
 
         $admin->update([
-            'password' => $request->password_baru, // di-hash otomatis oleh casting model User
+            'password' => $request->password_baru,
         ]);
 
         return back()->with('success_password', 'Kata sandi berhasil diperbarui!');
@@ -151,7 +188,18 @@ Route::post('/api/lapor', function (Request $request) {
         $tanggal = now()->format('Y-m-d');
     }
 
-    $nomorLaporan = 'LAP-' . date('Ymd') . '-' . rand(100, 999);
+    $today = date('Ymd');
+    $countToday = Laporan::whereDate('created_at', today())->count();
+
+    if ($countToday >= 10) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => 'Mohon maaf, kuota pengaduan untuk hari ini sudah penuh (maksimal 10 kasus). Silakan buat laporan kembali esok hari.',
+        ], 422);
+    }
+
+    $sequence = str_pad($countToday + 1, 3, '0', STR_PAD_LEFT);
+    $nomorLaporan = 'LAP-' . $today . '-' . $sequence;
 
     $laporan = Laporan::create([
         'nomor_laporan'     => $nomorLaporan,
