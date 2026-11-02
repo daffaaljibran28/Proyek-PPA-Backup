@@ -30,7 +30,12 @@ class PelaporAuthController extends Controller
 
         $field = filter_var($credentials['email'], FILTER_VALIDATE_EMAIL) ? 'email' : 'no_hp';
 
-        if (!Auth::attempt([$field => $credentials['email'], 'password' => $credentials['password'], 'role' => 'pengguna'], $request->boolean('remember'))) {
+        if (!Auth::attempt([
+            $field => $credentials['email'],
+            'password' => $credentials['password'],
+            'role' => 'pengguna',
+            'is_active' => true,
+        ], $request->boolean('remember'))) {
             return back()->withInput($request->only('email', 'remember'))->withErrors([
                 'email' => 'Email/Nomor HP atau kata sandi tidak sesuai dengan akun pelapor.',
             ]);

@@ -20,6 +20,7 @@
                     <th class="py-3 px-4">Nomor HP</th>
                     <th class="py-3 px-4">Tanggal Daftar</th>
                     <th class="py-3 px-4">Total Laporan</th>
+                    <th class="py-3 px-4 text-center">Status Akun</th>
                     <th class="py-3 px-4">Aksi</th>
                 </tr>
             </thead>
@@ -38,13 +39,27 @@
                     <td class="py-4 px-4 font-bold text-rose-600">
                         {{ \App\Models\Laporan::where('id_pengguna', $user->id ?? $user->id_pengguna)->count() }} Laporan
                     </td>
+                    <td class="py-4 px-4 text-center">
+                        <span class="inline-flex rounded-full px-3 py-1 font-bold {{ $user->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">
+                            {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
+                    </td>
                     <td class="py-4 px-4">
-                     <a href="{{ route('pengguna.show', $user->id) }}" class="text-rose-500 font-bold hover:underline cursor-pointer">Detail</a>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('pengguna.show', $user->id) }}" class="text-rose-500 font-bold hover:underline cursor-pointer">Detail</a>
+                            <form method="POST" action="{{ route('pengguna.toggle-status', $user->id) }}" onsubmit="return confirm('{{ $user->is_active ? 'Nonaktifkan akun pengguna ini?' : 'Aktifkan kembali akun pengguna ini?' }}')">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="font-bold hover:underline {{ $user->is_active ? 'text-amber-600' : 'text-emerald-600' }}">
+                                    {{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center py-8 text-gray-400">Belum ada data pengguna terdaftar di database.</td>
+                    <td colspan="7" class="text-center py-8 text-gray-400">Belum ada data pengguna terdaftar di database.</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -81,14 +81,14 @@ class PelaporAuthTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $this->actingAs($admin)->get('/pelapor')->assertForbidden();
+        $this->actingAs($admin)->get('/pelapor/home')->assertForbidden();
     }
 
     public function test_pelapor_session_cannot_access_admin_routes(): void
     {
         $user = $this->createPelapor();
 
-        $this->actingAs($user)->get('/')->assertForbidden();
+        $this->actingAs($user)->get('/')->assertRedirect(route('pelapor.home'));
         $this->actingAs($user)->get('/laporan')->assertForbidden();
         $this->actingAs($user)->get('/pengguna')->assertForbidden();
     }
@@ -102,7 +102,7 @@ class PelaporAuthTest extends TestCase
             'password' => 'Password123!',
         ]);
 
-        $response->assertRedirect('/pelapor');
+        $response->assertRedirect(route('pelapor.home'));
         $this->assertAuthenticatedAs($user);
     }
 
@@ -183,7 +183,7 @@ class PelaporAuthTest extends TestCase
     {
         $user = $this->createPelapor();
 
-        foreach (['/pelapor', '/pelapor/pengaduan', '/pelapor/pengaduan/buat', '/pelapor/informasi-edukasi', '/pelapor/emergency-call', '/pelapor/profil'] as $path) {
+        foreach (['/pelapor/home', '/pelapor/pengaduan', '/pelapor/pengaduan/buat', '/pelapor/informasi-edukasi', '/pelapor/emergency-call', '/pelapor/profil'] as $path) {
             $this->actingAs($user)->get($path)->assertOk();
         }
     }
@@ -349,10 +349,10 @@ class PelaporAuthTest extends TestCase
         $this->actingAs($user)->get('/pelapor/pengaduan/' . $laporan->id_laporan)
             ->assertSee('Petugas akan menghubungi Anda.')
             ->assertDontSee('Catatan internal rahasia');
-        $this->actingAs($user)->get('/pelapor')->assertSee('Sedang Diproses');
+        $this->actingAs($user)->get('/pelapor/home')->assertSee('Sedang Diproses');
 
         $otherUser = $this->createPelapor('penerima-lain@example.com');
-        $this->actingAs($otherUser)->get('/pelapor')->assertDontSee('Petugas akan menghubungi Anda.');
+        $this->actingAs($otherUser)->get('/pelapor/home')->assertDontSee('Petugas akan menghubungi Anda.');
     }
 
     public function test_status_filter_only_returns_the_current_users_matching_reports(): void
@@ -426,6 +426,11 @@ class PelaporAuthTest extends TestCase
             'status_penanganan' => 'Ditolak',
             'catatan_admin' => 'Percobaan perubahan setelah selesai',
         ])->assertRedirect('/laporan/' . $completed->id_laporan)->assertSessionHas('error');
+        $this->assertDatabaseHas('laporan', [
+            'id_laporan' => $completed->id_laporan,
+            'status_penanganan' => 'Selesai',
+            'catatan_admin' => null,
+        ]);
 
         $active = Laporan::create([
             'id_pengguna' => $user->id,
@@ -486,6 +491,59 @@ class PelaporAuthTest extends TestCase
         $this->assertDatabaseCount('laporan', 2);
     }
 
+    public function test_admin_report_list_displays_each_status_and_filters_legacy_processing_status(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin SAPA',
+            'email' => 'admin-status@example.com',
+            'password' => Hash::make('Password123!'),
+            'role' => 'admin',
+        ]);
+        $user = $this->createPelapor();
+
+        foreach (['Menunggu Verifikasi', 'Sedang Diproses', 'Diproses', 'Selesai', 'Ditolak'] as $status) {
+            Laporan::create([
+                'id_pengguna' => $user->id,
+                'nama_pelapor' => $user->name,
+                'kategori' => 'Kekerasan terhadap Anak',
+                'status_penanganan' => $status,
+            ]);
+        }
+
+        $this->actingAs($admin)->get('/laporan')
+            ->assertOk()
+            ->assertSee('Menunggu Verifikasi')
+            ->assertSee('Sedang Diproses')
+            ->assertSee('Selesai')
+            ->assertSee('Ditolak');
+
+        $this->get('/laporan?status=Sedang%20Diproses')
+            ->assertOk()
+            ->assertSee('Total: 2 Kasus')
+            ->assertDontSee('Total: 5 Kasus');
+    }
+
+    public function test_disabled_pelapor_cannot_log_in_or_continue_using_an_existing_session(): void
+    {
+        $user = $this->createPelapor('disabled-pelapor@example.com');
+        $admin = User::create([
+            'name' => 'Admin SAPA',
+            'email' => 'admin-disabled-pelapor@example.com',
+            'password' => Hash::make('Password123!'),
+            'role' => 'admin',
+        ]);
+
+        $this->actingAs($admin)->patch("/pengguna/{$user->id}/status")->assertRedirect();
+        $this->post('/pelapor/login', [
+            'email' => $user->email,
+            'password' => 'Password123!',
+        ])->assertRedirect()->assertSessionHasErrors('email');
+
+        $this->actingAs($user->fresh())->get('/pelapor/home')
+            ->assertRedirect(route('pelapor.login'))
+            ->assertSessionHasErrors('email');
+    }
+
     public function test_pelapor_can_read_delete_one_and_bulk_delete_read_notifications_without_changing_reports(): void
     {
         $user = $this->createPelapor();
@@ -502,7 +560,7 @@ class PelaporAuthTest extends TestCase
             ],
         ]);
 
-        $this->actingAs($user)->get('/pelapor')
+        $this->actingAs($user)->get('/pelapor/home')
             ->assertOk()
             ->assertSee('Belum dibaca')
             ->assertSee('Pesan notifikasi pertama.')
@@ -514,11 +572,11 @@ class PelaporAuthTest extends TestCase
 
         $this->actingAs($user)->delete('/pelapor/notifikasi/' . $laporan->id_laporan . '/1')
             ->assertSessionHas('success');
-        $this->actingAs($user)->get('/pelapor')->assertDontSee('Pesan notifikasi selesai.');
+        $this->actingAs($user)->get('/pelapor/home')->assertDontSee('Pesan notifikasi selesai.');
 
         $this->actingAs($user)->delete('/pelapor/notifikasi-terbaca')->assertSessionHas('success');
-        $this->actingAs($user)->get('/pelapor')->assertDontSee('Pesan notifikasi pertama.');
-        $this->actingAs($user)->get('/pelapor')->assertSee('Pembaruan lama yang masih unread.')->assertSee('Belum dibaca');
+        $this->actingAs($user)->get('/pelapor/home')->assertDontSee('Pesan notifikasi pertama.');
+        $this->actingAs($user)->get('/pelapor/home')->assertSee('Pembaruan lama yang masih unread.')->assertSee('Belum dibaca');
 
         $laporan->refresh();
         $this->assertSame('Selesai', $laporan->status_penanganan);

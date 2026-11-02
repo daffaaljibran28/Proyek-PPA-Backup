@@ -13,7 +13,9 @@
                 </div>
                 <div>
                     <h3 class="font-bold text-gray-800 text-base">{{ $user->name }}</h3>
-                    <span class="text-xs bg-rose-50 text-rose-600 font-semibold px-2 py-0.5 rounded-md">Pelapor Terdaftar</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-md {{ $user->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600' }}">
+                        {{ $user->is_active ? 'Akun Aktif' : 'Akun Nonaktif' }}
+                    </span>
                 </div>
             </div>
 
@@ -34,6 +36,13 @@
                     <p class="text-gray-400">Total Kasus yang Dilaporkan</p>
                     <p class="font-bold text-rose-600 text-sm mt-0.5">{{ $laporans->count() }} Laporan</p>
                 </div>
+                <form method="POST" action="{{ route('pengguna.toggle-status', $user->id) }}" onsubmit="return confirm('{{ $user->is_active ? 'Nonaktifkan akun pengguna ini?' : 'Aktifkan kembali akun pengguna ini?' }}')">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="w-full rounded-xl px-4 py-2.5 text-xs font-bold transition {{ $user->is_active ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
+                        {{ $user->is_active ? 'Nonaktifkan Akun' : 'Aktifkan Kembali Akun' }}
+                    </button>
+                </form>
             </div>
         </div>
 

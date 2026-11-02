@@ -31,10 +31,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
       String url = '${AppTheme.apiUrl}/riwayat';
       if (idUser != null) {
         url += '?id_pengguna=$idUser';
-      } else if (UserSession.name.isNotEmpty && UserSession.name != 'Pengguna') {
+      } else if (UserSession.name.isNotEmpty &&
+          UserSession.name != 'Pengguna') {
         url += '?nama_pelapor=${Uri.encodeComponent(UserSession.name)}';
       }
-      final res = await http.get(Uri.parse(url));
+      final res = await http.get(
+        Uri.parse(url),
+        headers: UserSession.authHeaders(),
+      );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data['status'] == 'success') {
@@ -71,7 +75,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Hapus', style: TextStyle(color: Colors.white)),
@@ -81,7 +86,10 @@ class _RiwayatPageState extends State<RiwayatPage> {
     );
 
     if (konfirmasi == true) {
-      await http.delete(Uri.parse('${AppTheme.apiUrl}/laporan/$id'));
+      await http.delete(
+        Uri.parse('${AppTheme.apiUrl}/laporan/$id'),
+        headers: UserSession.authHeaders(),
+      );
       _ambilRiwayat();
     }
   }
@@ -89,11 +97,13 @@ class _RiwayatPageState extends State<RiwayatPage> {
   // 3. Dialog Form Edit Laporan
   Future<void> _tampilkanDialogEdit(Map<String, dynamic> item) async {
     final idLaporan = item['id_laporan'] ?? item['id'];
-    final kategoriController = TextEditingController(text: item['kategori'] ?? '');
+    final kategoriController =
+        TextEditingController(text: item['kategori'] ?? '');
     final lokasiController = TextEditingController(
       text: item['lokasi_kejadian'] ?? item['lokasi'] ?? '',
     );
-    final kronologiController = TextEditingController(text: item['kronologi'] ?? '');
+    final kronologiController =
+        TextEditingController(text: item['kronologi'] ?? '');
 
     showDialog(
       context: context,
@@ -117,7 +127,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 decoration: const InputDecoration(
                   labelText: 'Kategori Kejadian',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
               const SizedBox(height: 12),
@@ -127,7 +138,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
                 decoration: const InputDecoration(
                   labelText: 'Lokasi Kejadian',
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               ),
               const SizedBox(height: 12),
@@ -152,7 +164,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryPink,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -161,7 +174,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
               try {
                 final res = await http.put(
                   Uri.parse('${AppTheme.apiUrl}/laporan/$idLaporan'),
-                  headers: {'Content-Type': 'application/json'},
+                  headers: UserSession.authHeaders(json: true),
                   body: jsonEncode({
                     'kategori': kategoriController.text,
                     'lokasi': lokasiController.text,
@@ -181,7 +194,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
               _ambilRiwayat();
             },
-            child: const Text('Simpan Perubahan', style: TextStyle(color: Colors.white)),
+            child: const Text('Simpan Perubahan',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -193,20 +207,24 @@ class _RiwayatPageState extends State<RiwayatPage> {
     return BaseLayout(
       showBackButton: false,
       child: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryPink))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryPink))
           : _list.isEmpty
               ? Center(
                   child: Text(
                     'Belum ada riwayat laporan.',
-                    style: GoogleFonts.plusJakartaSans(color: AppTheme.textGrey),
+                    style:
+                        GoogleFonts.plusJakartaSans(color: AppTheme.textGrey),
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   itemCount: _list.length,
                   itemBuilder: (ctx, i) {
                     final item = _list[i];
-                    final status = item['status_penanganan'] ?? 'Menunggu Verifikasi';
+                    final status =
+                        item['status_penanganan'] ?? 'Menunggu Verifikasi';
                     Color bg = AppTheme.badgeYellowBg;
                     Color txt = AppTheme.badgeYellowText;
                     if (status == 'Diproses' || status == 'Sedang Diproses') {
@@ -218,12 +236,14 @@ class _RiwayatPageState extends State<RiwayatPage> {
                     }
 
                     // Format tanggal bersih tanpa T00:00:00.000000Z
-                    String rawTanggal = (item['tanggal_kejadian'] ?? '').toString();
+                    String rawTanggal =
+                        (item['tanggal_kejadian'] ?? '').toString();
                     String cleanTanggal = rawTanggal.contains('T')
                         ? rawTanggal.split('T').first
                         : rawTanggal;
 
-                    final idLaporan = item['id_laporan'] ?? item['id'] ?? (i + 1);
+                    final idLaporan =
+                        item['id_laporan'] ?? item['id'] ?? (i + 1);
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -285,7 +305,8 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
                           // Badge Status
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: bg,
                               borderRadius: BorderRadius.circular(6),
@@ -303,14 +324,16 @@ class _RiwayatPageState extends State<RiwayatPage> {
 
                           // Tombol Edit
                           IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                            icon: const Icon(Icons.edit_outlined,
+                                color: Colors.blue, size: 20),
                             tooltip: 'Edit Laporan',
                             onPressed: () => _tampilkanDialogEdit(item),
                           ),
 
                           // Tombol Hapus
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 20),
                             tooltip: 'Hapus Laporan',
                             onPressed: () => _hapus(idLaporan),
                           ),

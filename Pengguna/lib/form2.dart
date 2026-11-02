@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:html' as html;
+import 'package:image_picker/image_picker.dart';
 import 'theme.dart';
 import 'header.dart';
 import 'konfirmasi.dart';
@@ -27,44 +26,112 @@ class Form2Page extends StatefulWidget {
 }
 
 class _Form2PageState extends State<Form2Page> {
-  final List<String> _listFoto = [];
+  final ImagePicker _imagePicker = ImagePicker();
+  final List<XFile> _listFoto = [];
+
+  void _tampilkanPesanMaksimal() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Maksimal hanya dapat mengunggah 3 foto bukti.',
+          style: GoogleFonts.plusJakartaSans(color: Colors.white),
+        ),
+        backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
 
   void _bukaPilihFoto() {
     if (_listFoto.length >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Maksimal 3 foto!',
-            style: GoogleFonts.plusJakartaSans(color: Colors.white),
-          ),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _tampilkanPesanMaksimal();
       return;
     }
 
-    if (kIsWeb) {
-      final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-      uploadInput.accept = 'image/*';
-      uploadInput.multiple = true;
-      uploadInput.click();
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pilih dari galeri'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pilihFoto(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Ambil dengan kamera'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _pilihFoto(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-      uploadInput.onChange.listen((e) {
-        final files = uploadInput.files;
-        if (files != null && files.isNotEmpty) {
-          setState(() {
-            for (var file in files) {
-              if (_listFoto.length < 3) {
-                _listFoto.add(file.name);
-              }
-            }
-          });
-        }
-      });
-    } else {
+  Future<void> _pilihFoto(ImageSource sumber) async {
+    try {
+      final List<XFile> hasil;
+      if (sumber == ImageSource.gallery) {
+        hasil = await _imagePicker.pickMultiImage(
+          imageQuality: 80,
+          maxWidth: 1600,
+          maxHeight: 1600,
+        );
+      } else {
+        final foto = await _imagePicker.pickImage(
+          source: ImageSource.camera,
+          imageQuality: 80,
+          maxWidth: 1600,
+          maxHeight: 1600,
+        );
+        hasil = foto == null ? [] : [foto];
+      }
+
+      if (!mounted || hasil.isEmpty) return;
+
+      final fotoValid = hasil.where((foto) {
+        final nama = foto.name.toLowerCase();
+        return nama.endsWith('.jpg') ||
+            nama.endsWith('.jpeg') ||
+            nama.endsWith('.png');
+      }).toList();
+
+      if (fotoValid.length != hasil.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Format foto harus JPG, JPEG, atau PNG.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white),
+            ),
+          ),
+        );
+      }
+
+      if (fotoValid.isEmpty) return;
+
+      final slotTersedia = 3 - _listFoto.length;
       setState(() {
-        _listFoto.add("foto_bukti_${_listFoto.length + 1}.jpg");
+        _listFoto.addAll(fotoValid.take(slotTersedia));
       });
+
+      if (fotoValid.length > slotTersedia) {
+        _tampilkanPesanMaksimal();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Foto tidak dapat dipilih. Silakan coba lagi.',
+            style: GoogleFonts.plusJakartaSans(color: Colors.white),
+          ),
+        ),
+      );
     }
   }
 
@@ -83,7 +150,8 @@ class _Form2PageState extends State<Form2Page> {
         children: [
           // Area Kotak Pilih Foto
           InkWell(
-            onTap: _bukaPilihFoto,
+            onTap:
+                _listFoto.length < 3 ? _bukaPilihFoto : _tampilkanPesanMaksimal,
             borderRadius: BorderRadius.circular(16),
             child: Container(
               width: double.infinity,
@@ -112,7 +180,7 @@ class _Form2PageState extends State<Form2Page> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Maksimal 3 foto (JPG / PNG)\nKlik untuk memilih foto dari perangkat',
+                    'JPG, JPEG, atau PNG\nPilih dari galeri atau kamera',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
@@ -125,53 +193,73 @@ class _Form2PageState extends State<Form2Page> {
             ),
           ),
 
-          // Daftar foto yang dipilih
-          if (_listFoto.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              'Foto yang dipilih (${_listFoto.length}/3):',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+          const SizedBox(height: 16),
+          Text(
+            'Terpilih: ${_listFoto.length} / 3 foto',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
+          ),
+          if (_listFoto.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ...List.generate(_listFoto.length, (index) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: List.generate(_listFoto.length, (index) {
+                return Stack(
                   children: [
-                    const Icon(Icons.image_outlined,
-                        color: AppTheme.primaryPink, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _listFoto[index],
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: FutureBuilder(
+                        future: _listFoto[index].readAsBytes(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return Image.memory(
+                              snapshot.data!,
+                              width: 88,
+                              height: 88,
+                              fit: BoxFit.cover,
+                            );
+                          }
+                          return Container(
+                            width: 88,
+                            height: 88,
+                            color: Colors.grey.shade200,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppTheme.primaryPink,
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel,
-                          color: AppTheme.primaryPink, size: 18),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => _hapusFoto(index),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: InkWell(
+                        onTap: () => _hapusFoto(index),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: AppTheme.primaryPink,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ],
 
           const SizedBox(height: 32),
@@ -181,27 +269,32 @@ class _Form2PageState extends State<Form2Page> {
             height: 48,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPink,
+                backgroundColor: _listFoto.isNotEmpty
+                    ? AppTheme.primaryPink
+                    : Colors.grey.shade400,
+                disabledBackgroundColor: Colors.grey.shade400,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => KonfirmasiPage(
-                      kategori: widget.kategori,
-                      sebagai: widget.sebagai,
-                      lokasi: widget.lokasi,
-                      tanggal: widget.tanggal,
-                      kronologi: widget.kronologi,
-                      files: _listFoto,
-                    ),
-                  ),
-                );
-              },
+              onPressed: _listFoto.isNotEmpty && _listFoto.length <= 3
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => KonfirmasiPage(
+                            kategori: widget.kategori,
+                            sebagai: widget.sebagai,
+                            lokasi: widget.lokasi,
+                            tanggal: widget.tanggal,
+                            kronologi: widget.kronologi,
+                            files: List<XFile>.from(_listFoto),
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
               child: Text(
                 'Lanjut',
                 style: GoogleFonts.plusJakartaSans(

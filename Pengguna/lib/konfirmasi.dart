@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'theme.dart';
 import 'header.dart';
+import 'login.dart';
 import 'sukses.dart';
 
 class KonfirmasiPage extends StatefulWidget {
@@ -12,7 +14,7 @@ class KonfirmasiPage extends StatefulWidget {
   final String lokasi;
   final String tanggal;
   final String kronologi;
-  final List<String> files;
+  final List<XFile> files;
 
   const KonfirmasiPage({
     super.key,
@@ -44,34 +46,39 @@ class _KonfirmasiPageState extends State<KonfirmasiPage> {
       }
     }
 
-    final body = {
-      'id_pengguna': UserSession.id ?? 1,
-      'nama_pelapor': UserSession.name,
-      'kategori': widget.kategori,
-      'sebagai': widget.sebagai,
-      'lokasi_kejadian': widget.lokasi,
-      'tanggal_kejadian': formatTanggalKejadian,
-      'kronologi': widget.kronologi,
-      'bukti_lampiran': widget.files.isNotEmpty ? widget.files.join(', ') : null,
-    };
-
     try {
-      final res = await http.post(
+      final request = http.MultipartRequest(
+        'POST',
         Uri.parse('${AppTheme.apiUrl}/lapor'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
       );
+      request.headers.addAll(UserSession.authHeaders());
+      request.fields.addAll({
+        'id_pengguna': (UserSession.id ?? 1).toString(),
+        'nama_pelapor': UserSession.name,
+        'kategori': widget.kategori,
+        'sebagai': widget.sebagai,
+        'lokasi_kejadian': widget.lokasi,
+        'tanggal_kejadian': formatTanggalKejadian,
+        'kronologi': widget.kronologi,
+      });
 
-      print('STATUS: ${res.statusCode}');
-      print('RESPONSE: ${res.body}');
+      for (final foto in widget.files) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'bukti_lampiran[]',
+            await foto.readAsBytes(),
+            filename: foto.name,
+          ),
+        );
+      }
+
+      final streamedResponse = await request.send();
+      final res = await http.Response.fromStream(streamedResponse);
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (data['status'] == 'success' && data['data'] != null) {
-          idNomor = 'LAP-${data['data']['id_laporan'] ?? data['data']['nomor_laporan']}';
+          idNomor = data['data']['nomor_laporan'] ?? idNomor;
         }
         if (!mounted) return;
         setState(() => _loading = false);
@@ -83,6 +90,44 @@ class _KonfirmasiPageState extends State<KonfirmasiPage> {
       } else {
         if (!mounted) return;
         setState(() => _loading = false);
+
+        if (res.statusCode == 401) {
+          await UserSession.clear();
+          if (!mounted) return;
+
+          final loginAgain = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Sesi login berakhir'),
+              content: const Text(
+                'Silakan masuk kembali untuk mengirim laporan. Data laporan Anda tetap tersimpan di halaman ini.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Nanti'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Masuk kembali'),
+                ),
+              ],
+            ),
+          );
+          if (loginAgain != true || !mounted) return;
+
+          final authenticated = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const Login(returnAfterLogin: true),
+            ),
+          );
+          if (authenticated == true && mounted) {
+            await _kirimLaporan();
+          }
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal menyimpan: ${data['message'] ?? res.body}'),
@@ -91,7 +136,6 @@ class _KonfirmasiPageState extends State<KonfirmasiPage> {
         );
       }
     } catch (e) {
-      print('ERROR CONNECTION: $e');
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +167,8 @@ class _KonfirmasiPageState extends State<KonfirmasiPage> {
                   const CircleAvatar(
                     radius: 24,
                     backgroundColor: AppTheme.primaryPink,
-                    child: Icon(Icons.assignment_turned_in, color: Colors.white, size: 24),
+                    child: Icon(Icons.assignment_turned_in,
+                        color: Colors.white, size: 24),
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -241,7 +286,9 @@ class _KonfirmasiPageState extends State<KonfirmasiPage> {
               ),
             ),
           ),
-          Text(': ', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppTheme.textGrey)),
+          Text(': ',
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12, color: AppTheme.textGrey)),
           Expanded(
             child: Text(
               v,

@@ -1,58 +1,33 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MobileApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Models\Laporan;
-use Carbon\Carbon;
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
 });
 
-// Rute untuk Login & Register Pengguna (Flutter)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+Route::get('/informasi', [MobileApiController::class, 'informations']);
 
-// Rute untuk Pengiriman Laporan
-Route::post('/lapor', function (Request $request) {
-    $tanggal = $request->tanggal_kejadian;
-    if ($tanggal) {
-        try {
-            if (str_contains($tanggal, '-')) {
-                $parts = explode('-', $tanggal);
-                if (strlen($parts[0]) == 2) {
-                    $tanggal = Carbon::createFromFormat('d-m-Y', $tanggal)->format('Y-m-d');
-                }
-            }
-        } catch (\Exception $e) {
-            $tanggal = now()->format('Y-m-d');
-        }
-    } else {
-        $tanggal = now()->format('Y-m-d');
-    }
+Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureActiveAccount::class])->group(function () {
+    Route::get('/user', fn (Request $request) => $request->user());
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-    $nomorLaporan = 'LAP-' . date('Ymd') . '-' . rand(100, 999);
+    Route::get('/laporan', [MobileApiController::class, 'reports']);
+    Route::get('/riwayat', [MobileApiController::class, 'reports']);
+    Route::get('/laporan-terakhir', [MobileApiController::class, 'latestReport']);
+    Route::post('/lapor', [MobileApiController::class, 'storeReport']);
+    Route::put('/laporan/{id}', [MobileApiController::class, 'updateReport'])->whereNumber('id');
+    Route::delete('/laporan/{id}', [MobileApiController::class, 'deleteReport'])->whereNumber('id');
 
-    $laporan = Laporan::create([
-        'nomor_laporan'     => $nomorLaporan,
-        'id_pengguna'       => $request->id_pengguna ?? 1,
-        'kategori'          => $request->kategori,
-        'sebagai'           => $request->sebagai,
-        'nama_pelapor'      => $request->nama_pelapor ?? $request->pelapor_nama ?? 'Revitaaa',
-        'pelapor_nama'      => $request->nama_pelapor ?? $request->pelapor_nama ?? 'Revitaaa',
-        'lokasi'            => $request->lokasi_kejadian ?? $request->lokasi,
-        'lokasi_kejadian'   => $request->lokasi_kejadian ?? $request->lokasi,
-        'tanggal_kejadian'  => $tanggal,
-        'kronologi'         => $request->kronologi,
-        'bukti_lampiran'    => $request->bukti_lampiran,
-        'status'            => 'Menunggu Verifikasi',
-        'status_penanganan' => 'Menunggu Verifikasi',
-    ]);
+    Route::get('/notifikasi/{userId}', [MobileApiController::class, 'notifications'])->whereNumber('userId');
+    Route::delete('/notifikasi/{userId}/{reportId}', [MobileApiController::class, 'dismissNotification'])
+        ->whereNumber('userId')
+        ->whereNumber('reportId');
 
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Laporan berhasil terkirim ke Admin!',
-        'data'    => $laporan,
-    ], 201);
+    Route::put('/pengguna/{userId}/profil', [MobileApiController::class, 'updateProfile'])->whereNumber('userId');
+    Route::put('/pengguna/{userId}/password', [MobileApiController::class, 'updatePassword'])->whereNumber('userId');
 });

@@ -140,7 +140,11 @@ class LaporanController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status_penanganan', $request->status);
+            if ($request->status === 'Sedang Diproses') {
+                $query->whereIn('status_penanganan', ['Sedang Diproses', 'Diproses']);
+            } else {
+                $query->where('status_penanganan', $request->status);
+            }
         }
 
         $laporans = $query->latest()->paginate(10)->withQueryString();
@@ -179,7 +183,12 @@ class LaporanController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $laporan = Laporan::where('id_laporan', $id)->firstOrFail();
-        
+
+        if ($laporan->status_penanganan === 'Selesai') {
+            return redirect()->route('laporan.show', $laporan->id_laporan)
+                ->with('error', 'Laporan yang sudah selesai tidak dapat diubah.');
+        }
+
         $validated = $request->validate([
             'status_penanganan' => ['sometimes', 'required', 'in:Menunggu Verifikasi,Sedang Diproses,Diproses,Selesai,Ditolak'],
             'status'            => ['sometimes', 'required', 'in:Menunggu Verifikasi,Sedang Diproses,Diproses,Selesai,Ditolak'],
@@ -204,6 +213,7 @@ class LaporanController extends Controller
         $laporan->catatan_admin     = $validated['catatan_admin'] ?? $laporan->catatan_admin;
         $laporan->pesan_pelapor     = $pesanPelapor !== '' ? $pesanPelapor : $laporan->pesan_pelapor;
         $laporan->riwayat_status    = $riwayat;
+        $laporan->notifikasi_dihapus = false;
         $laporan->save();
 
         return redirect()->route('laporan.index')

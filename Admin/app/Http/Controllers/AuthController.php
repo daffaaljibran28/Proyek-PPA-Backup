@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // Fungsi Register (Daftar Akun)
     public function register(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'nik' => 'required|string|size:16|unique:user,nik',
-            'no_hp' => 'required|string|min:10|max:13|unique:user,no_hp',
+            'no_hp' => 'required|string|min:10|max:20|unique:user,no_hp',
             'email' => 'required|string|email|max:255|unique:user,email',
             'password' => 'required|string|min:8',
+            'tanggal_lahir' => 'nullable|string|max:50',
+            'alamat' => 'nullable|string|max:2000',
         ], [
             'nik.unique' => 'NIK ini sudah terdaftar.',
             'email.unique' => 'Email ini sudah terdaftar.',
@@ -24,43 +25,63 @@ class AuthController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'nik' => $request->nik,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'alamat' => $request->alamat,
-            'email' => $request->email,
-            'no_hp' => $request->no_hp,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'nik' => $validated['nik'],
+            'tanggal_lahir' => $validated['tanggal_lahir'] ?? null,
+            'alamat' => $validated['alamat'] ?? null,
+            'email' => $validated['email'],
+            'no_hp' => $validated['no_hp'],
+            'role' => 'pengguna',
+            'password' => Hash::make($validated['password']),
         ]);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Registrasi berhasil',
-            'data' => $user
+            'data' => $user,
         ], 201);
     }
 
-    // Fungsi Login (Masuk Akun)
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string|max:255',
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)
+            ->orWhere('no_hp', $request->email)
+            ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (
+            ! $user
+            || $user->isAdmin()
+            || ! $user->is_active
+            || ! Hash::check($request->password, $user->password)
+        ) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Email atau password salah!'
+                'message' => 'Email atau password salah!',
             ], 401);
         }
+
+        $user->tokens()->where('name', 'flutter-app')->delete();
+        $token = $user->createToken('flutter-app')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
             'message' => 'Login berhasil',
-            'data' => $user
+            'data' => [...$user->toArray(), 'token' => $token],
         ], 200);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Berhasil keluar.',
+        ]);
     }
 }

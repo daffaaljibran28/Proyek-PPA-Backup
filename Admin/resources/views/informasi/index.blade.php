@@ -29,7 +29,7 @@
                 <select name="status" onchange="this.form.submit()" class="bg-white border border-rose-100 text-xs rounded-xl py-2 px-3 text-gray-600 focus:ring-rose-500 focus:border-rose-500 shadow-sm">
                     <option value="">Semua Status</option>
                     <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
-                    <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draf</option>
+                    <option value="draf" {{ request('status') == 'draf' || request('status') == 'draft' ? 'selected' : '' }}>Draf</option>
                 </select>
             </form>
 

@@ -19,7 +19,8 @@ class AdminInformasiController extends Controller
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $status = $request->status === 'draft' ? 'draf' : $request->status;
+            $query->where('status', $status);
         }
 
         // Gunakan paginate(10) agar method ->total() dan links() berfungsi

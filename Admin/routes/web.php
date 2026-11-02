@@ -5,12 +5,12 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PelaporAuthController;
 use App\Http\Controllers\PelaporController;
 use App\Http\Controllers\AdminInformasiController;
+use App\Http\Controllers\AdminPenggunaController;
 use App\Http\Middleware\EnsurePelapor;
 use App\Http\Middleware\EnsureAdmin;
 use App\Models\Laporan;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 use App\Http\Controllers\AdminAuthController;
 use Illuminate\Support\Facades\Hash;
@@ -101,6 +101,9 @@ Route::middleware(['auth', EnsureAdmin::class])->group(function () {
         $penggunas = User::where('role', 'pengguna')->latest()->get();
         return view('pengguna.index', compact('penggunas'));
     })->name('pengguna.index');
+    Route::patch('/pengguna/{id}/status', [AdminPenggunaController::class, 'toggleStatus'])
+        ->whereNumber('id')
+        ->name('pengguna.toggle-status');
 
     Route::get('/pengguna/login', function () {
         return view('pengguna.login');
@@ -166,144 +169,4 @@ Route::middleware(['auth', EnsureAdmin::class])->group(function () {
 
         return back()->with('success_password', 'Kata sandi berhasil diperbarui!');
     })->name('pengaturan.update-password');
-});
-
-// ========================================================
-// API Endpoints untuk Flutter Mobile
-// ========================================================
-Route::post('/api/lapor', function (Request $request) {
-    $tanggal = $request->tanggal_kejadian;
-    if ($tanggal) {
-        try {
-            if (str_contains($tanggal, '-')) {
-                $parts = explode('-', $tanggal);
-                if (strlen($parts[0]) == 2) {
-                    $tanggal = Carbon::createFromFormat('d-m-Y', $tanggal)->format('Y-m-d');
-                }
-            }
-        } catch (\Exception $e) {
-            $tanggal = now()->format('Y-m-d');
-        }
-    } else {
-        $tanggal = now()->format('Y-m-d');
-    }
-
-    $today = date('Ymd');
-    $countToday = Laporan::whereDate('created_at', today())->count();
-
-    if ($countToday >= 10) {
-        return response()->json([
-            'status'  => 'error',
-            'message' => 'Mohon maaf, kuota pengaduan untuk hari ini sudah penuh (maksimal 10 kasus). Silakan buat laporan kembali esok hari.',
-        ], 422);
-    }
-
-    $sequence = str_pad($countToday + 1, 3, '0', STR_PAD_LEFT);
-    $nomorLaporan = 'LAP-' . $today . '-' . $sequence;
-
-    $laporan = Laporan::create([
-        'nomor_laporan'     => $nomorLaporan,
-        'id_pengguna'       => $request->id_pengguna ?? 1,
-        'nama_pelapor'      => $request->nama_pelapor ?? $request->pelapor_nama ?? 'Revitaaa',
-        'kategori'          => $request->kategori,
-        'sebagai'           => $request->sebagai,
-        'lokasi_kejadian'   => $request->lokasi_kejadian ?? $request->lokasi,
-        'tanggal_kejadian'  => $tanggal,
-        'kronologi'         => $request->kronologi,
-        'bukti_lampiran'    => $request->bukti_lampiran,
-        'status_penanganan' => 'Menunggu Verifikasi',
-    ]);
-
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Laporan berhasil terkirim ke Admin!',
-        'data'    => $laporan,
-    ], 201);
-});
-
-Route::get('/api/laporan-terakhir', function () {
-    $laporan = Laporan::latest()->first();
-
-    if (!$laporan) {
-        return response()->json([
-            'status'  => 'empty',
-            'message' => 'Belum ada laporan aktif',
-            'data'    => null,
-        ], 404);
-    }
-
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Laporan ditemukan',
-        'data'    => $laporan,
-    ]);
-});
-
-Route::get('/api/riwayat', function (Request $request) {
-    $query = Laporan::query();
-
-    if ($request->filled('id_pengguna')) {
-        $query->where('id_pengguna', $request->id_pengguna);
-    } elseif ($request->filled('nama_pelapor')) {
-        $query->where('nama_pelapor', $request->nama_pelapor);
-    }
-
-    $laporan = $query->latest()->get();
-
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Daftar riwayat laporan berhasil diambil',
-        'data'    => $laporan,
-    ], 200);
-});
-
-Route::put('/api/laporan/{id}', function (Request $request, $id) {
-    $laporan = Laporan::where('id_laporan', $id)->first();
-
-    if (!$laporan) {
-        return response()->json([
-            'status'  => 'error',
-            'message' => 'Laporan tidak ditemukan',
-        ], 404);
-    }
-
-    $tanggal = $request->tanggal_kejadian;
-    if ($tanggal && str_contains($tanggal, '-')) {
-        $parts = explode('-', $tanggal);
-        if (strlen($parts[0]) == 2) {
-            try {
-                $tanggal = Carbon::createFromFormat('d-m-Y', $tanggal)->format('Y-m-d');
-            } catch (\Exception $e) {}
-        }
-    }
-
-    $laporan->update([
-        'kategori'         => $request->kategori ?? $laporan->kategori,
-        'lokasi_kejadian'  => $request->lokasi_kejadian ?? $request->lokasi ?? $laporan->lokasi_kejadian,
-        'tanggal_kejadian' => $tanggal ?? $laporan->tanggal_kejadian,
-        'kronologi'        => $request->kronologi ?? $laporan->kronologi,
-    ]);
-
-    return response()->json([
-        'status'  => 'success',
-        'message' => 'Laporan berhasil diperbarui!',
-        'data'    => $laporan,
-    ], 200);
-});
-
-Route::delete('/api/laporan/{id}', function ($id) {
-    $laporan = Laporan::where('id_laporan', $id)->first();
-
-    if ($laporan) {
-        $laporan->delete();
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Laporan berhasil dihapus',
-        ]);
-    }
-
-    return response()->json([
-        'status'  => 'error',
-        'message' => 'Laporan tidak ditemukan',
-    ], 404);
 });

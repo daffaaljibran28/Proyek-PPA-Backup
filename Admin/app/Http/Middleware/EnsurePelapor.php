@@ -18,6 +18,15 @@ class EnsurePelapor
             abort(403);
         }
 
+        if (! $request->user()->is_active) {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('pelapor.login')
+                ->withErrors(['email' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.']);
+        }
+
         return $next($request);
     }
 }

@@ -8,10 +8,12 @@ import 'theme.dart';
 
 class Login extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
+  final bool returnAfterLogin;
 
   const Login({
     super.key,
     this.onLoginSuccess,
+    this.returnAfterLogin = false,
   });
 
   @override
@@ -56,10 +58,7 @@ class _LoginState extends State<Login> {
     try {
       final res = await http.post(
         Uri.parse('${AppTheme.apiUrl}/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: UserSession.authHeaders(json: true),
         body: jsonEncode({
           'email': emailOrHp,
           'password': password,
@@ -71,9 +70,13 @@ class _LoginState extends State<Login> {
 
       if (res.statusCode == 200) {
         if (data['data'] != null) {
-          UserSession.currentUser = data['data'];
+          await UserSession.save(Map<String, dynamic>.from(data['data']));
         }
         if (!mounted) return;
+        if (widget.returnAfterLogin) {
+          Navigator.pop(context, true);
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Login berhasil!'),

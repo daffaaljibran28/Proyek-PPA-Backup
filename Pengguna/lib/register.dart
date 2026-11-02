@@ -23,7 +23,8 @@ class _RegisterState extends State<Register> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _noHpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _konfirmasiPasswordController = TextEditingController();
+  final TextEditingController _konfirmasiPasswordController =
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureKonfirmasi = true;
@@ -62,8 +63,7 @@ class _RegisterState extends State<Register> {
 
     if (tanggal != null) {
       setState(() {
-        _tanggalController.text =
-            '${tanggal.day.toString().padLeft(2, '0')}/'
+        _tanggalController.text = '${tanggal.day.toString().padLeft(2, '0')}/'
             '${tanggal.month.toString().padLeft(2, '0')}/'
             '${tanggal.year}';
         _errTanggal = null;
@@ -101,7 +101,8 @@ class _RegisterState extends State<Register> {
         _errNik = 'NIK tidak boleh menggunakan huruf, spasi, atau simbol.';
         valid = false;
       } else if (nik.length != 16) {
-        _errNik = 'NIK harus tepat 16 digit angka (saat ini: ${nik.length} digit).';
+        _errNik =
+            'NIK harus tepat 16 digit angka (saat ini: ${nik.length} digit).';
         valid = false;
       } else {
         _errNik = null;
@@ -129,7 +130,8 @@ class _RegisterState extends State<Register> {
         valid = false;
       } else if (!email.endsWith('@gmail.com') ||
           email.length <= '@gmail.com'.length) {
-        _errEmail = 'Email harus menggunakan @gmail.com (contoh: nama@gmail.com).';
+        _errEmail =
+            'Email harus menggunakan @gmail.com (contoh: nama@gmail.com).';
         valid = false;
       } else {
         _errEmail = null;
@@ -140,13 +142,15 @@ class _RegisterState extends State<Register> {
         _errNoHp = 'Nomor HP wajib diisi.';
         valid = false;
       } else if (RegExp(r'[^0-9]').hasMatch(noHp)) {
-        _errNoHp = 'Nomor HP tidak boleh menggunakan huruf, spasi, atau simbol.';
+        _errNoHp =
+            'Nomor HP tidak boleh menggunakan huruf, spasi, atau simbol.';
         valid = false;
       } else if (!noHp.startsWith('08')) {
         _errNoHp = 'Nomor HP harus diawali dengan "08" (contoh: 081234567890).';
         valid = false;
       } else if (noHp.length < 10 || noHp.length > 13) {
-        _errNoHp = 'Nomor HP harus 10–13 digit angka (saat ini: ${noHp.length} digit).';
+        _errNoHp =
+            'Nomor HP harus 10–13 digit angka (saat ini: ${noHp.length} digit).';
         valid = false;
       } else {
         _errNoHp = null;
@@ -157,7 +161,8 @@ class _RegisterState extends State<Register> {
         _errPassword = 'Password wajib diisi.';
         valid = false;
       } else if (password.length < 8) {
-        _errPassword = 'Password minimal 8 karakter (saat ini: ${password.length} karakter).';
+        _errPassword =
+            'Password minimal 8 karakter (saat ini: ${password.length} karakter).';
         valid = false;
       } else if (!RegExp(r'[A-Z]').hasMatch(password)) {
         _errPassword = 'Password harus mengandung minimal 1 huruf besar (A-Z).';
@@ -169,7 +174,8 @@ class _RegisterState extends State<Register> {
         _errPassword = 'Password harus mengandung minimal 1 angka (0-9).';
         valid = false;
       } else if (!RegExp(r'[!@#$%^&*]').hasMatch(password)) {
-        _errPassword = 'Password harus mengandung minimal 1 karakter khusus (!@#%^&*).';
+        _errPassword =
+            'Password harus mengandung minimal 1 karakter khusus (!@#%^&*).';
         valid = false;
       } else {
         _errPassword = null;
@@ -227,10 +233,7 @@ class _RegisterState extends State<Register> {
     try {
       final res = await http.post(
         Uri.parse('${AppTheme.apiUrl}/register'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: UserSession.authHeaders(json: true),
         body: jsonEncode({
           'name': nama,
           'nik': nik,
@@ -252,9 +255,6 @@ class _RegisterState extends State<Register> {
       }
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        if (data != null && data['data'] != null) {
-          UserSession.currentUser = data['data'];
-        }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -269,22 +269,33 @@ class _RegisterState extends State<Register> {
       } else {
         if (!mounted) return;
         String pesanPeringatan = '';
-        if (data != null && data is Map && data.containsKey('errors') && data['errors'] is Map) {
+        if (data != null &&
+            data is Map &&
+            data.containsKey('errors') &&
+            data['errors'] is Map) {
           final errs = data['errors'] as Map;
           setState(() {
-            if (errs.containsKey('nik') && errs['nik'] is List && (errs['nik'] as List).isNotEmpty) {
+            if (errs.containsKey('nik') &&
+                errs['nik'] is List &&
+                (errs['nik'] as List).isNotEmpty) {
               _errNik = errs['nik'].first.toString();
               pesanPeringatan += '${_errNik!}\n';
             }
-            if (errs.containsKey('email') && errs['email'] is List && (errs['email'] as List).isNotEmpty) {
+            if (errs.containsKey('email') &&
+                errs['email'] is List &&
+                (errs['email'] as List).isNotEmpty) {
               _errEmail = errs['email'].first.toString();
               pesanPeringatan += '${_errEmail!}\n';
             }
-            if (errs.containsKey('no_hp') && errs['no_hp'] is List && (errs['no_hp'] as List).isNotEmpty) {
+            if (errs.containsKey('no_hp') &&
+                errs['no_hp'] is List &&
+                (errs['no_hp'] as List).isNotEmpty) {
               _errNoHp = errs['no_hp'].first.toString();
               pesanPeringatan += '${_errNoHp!}\n';
             }
-            if (errs.containsKey('password') && errs['password'] is List && (errs['password'] as List).isNotEmpty) {
+            if (errs.containsKey('password') &&
+                errs['password'] is List &&
+                (errs['password'] as List).isNotEmpty) {
               _errPassword = errs['password'].first.toString();
               pesanPeringatan += '${_errPassword!}\n';
             }
@@ -525,7 +536,6 @@ class _RegisterState extends State<Register> {
                       ),
                     ),
                     const SizedBox(height: 18),
-
                     _buildField(
                       label: 'Nama Lengkap',
                       hint: 'Masukkan nama lengkap',
@@ -535,7 +545,6 @@ class _RegisterState extends State<Register> {
                       onChanged: () => _errNama = null,
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'NIK (16 Digit Angka, Tanpa Huruf/Simbol/Spasi)',
                       hint: 'Contoh: 3271234567890001',
@@ -546,7 +555,6 @@ class _RegisterState extends State<Register> {
                       onChanged: () => _errNik = null,
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Tanggal Lahir',
                       hint: 'Pilih tanggal lahir',
@@ -561,7 +569,6 @@ class _RegisterState extends State<Register> {
                       ),
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Alamat',
                       hint: 'Masukkan alamat lengkap',
@@ -571,7 +578,6 @@ class _RegisterState extends State<Register> {
                       onChanged: () => _errAlamat = null,
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Email (Wajib @gmail.com)',
                       hint: 'contoh@gmail.com',
@@ -582,7 +588,6 @@ class _RegisterState extends State<Register> {
                       onChanged: () => _errEmail = null,
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Nomor HP (Awali "08", Tanpa Huruf/Simbol/Spasi)',
                       hint: 'Contoh: 081234567890',
@@ -593,7 +598,6 @@ class _RegisterState extends State<Register> {
                       onChanged: () => _errNoHp = null,
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Password',
                       hint: 'Masukkan password',
@@ -610,12 +614,11 @@ class _RegisterState extends State<Register> {
                           color: headerPink,
                           size: 17,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     const SizedBox(height: 11),
-
                     _buildField(
                       label: 'Konfirmasi Password',
                       hint: 'Ulangi password',
@@ -632,12 +635,11 @@ class _RegisterState extends State<Register> {
                           color: headerPink,
                           size: 17,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscureKonfirmasi = !_obscureKonfirmasi),
+                        onPressed: () => setState(
+                            () => _obscureKonfirmasi = !_obscureKonfirmasi),
                       ),
                     ),
                     const SizedBox(height: 13),
-
                     SizedBox(
                       width: double.infinity,
                       height: 43,
@@ -668,7 +670,6 @@ class _RegisterState extends State<Register> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
