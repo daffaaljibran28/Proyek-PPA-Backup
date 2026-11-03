@@ -1,7 +1,9 @@
 <x-app-layout>
     <div class="flex justify-between items-center mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ route('laporan.index') }}" class="w-9 h-9 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 transition">←</a>
+            <a href="{{ route('laporan.index') }}" aria-label="Kembali ke daftar laporan" title="Kembali ke daftar laporan" class="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-x-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7 7-7-7 7-7"/></svg>
+            </a>
             <h2 class="text-xl font-bold text-rose-600">Detail Laporan {{ $laporan->nomor_laporan }}</h2>
         </div>
         <span class="bg-amber-50 text-amber-600 border border-amber-200 px-4 py-1.5 rounded-full text-xs font-bold">
@@ -44,7 +46,13 @@
                     </div>
                     <div>
                         <p class="text-gray-400 text-xs">Lokasi Kejadian</p>
-                        <p class="font-semibold text-gray-800">{{ $laporan->lokasi_kejadian }}</p>
+                        <p class="font-semibold text-gray-800">{{ $laporan->lokasi_kejadian ?: '-' }}</p>
+                        @if($laporan->lokasi_kejadian)
+                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ urlencode($laporan->lokasi_kejadian) }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                                Buka di Google Maps
+                            </a>
+                        @endif
                     </div>
                     <div>
                         <p class="text-gray-400 text-xs">Tanggal Kejadian</p>

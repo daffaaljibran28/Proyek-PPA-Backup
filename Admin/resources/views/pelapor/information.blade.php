@@ -15,9 +15,16 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
             @forelse($informasis as $item)
             <article class="group flex flex-col overflow-hidden rounded-3xl border border-pink-100/70 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-                <!-- Gambar / Thumbnail Berita -->
-                <div class="relative h-44 w-full overflow-hidden bg-gradient-to-br from-rose-100 to-pink-50">
-                    @if($item->gambar)
+                @php($videoEmbedUrl = \App\Support\InformationVideo::embedUrl($item->video_url))
+                <div class="relative w-full overflow-hidden bg-gradient-to-br from-rose-100 to-pink-50 {{ $videoEmbedUrl || $item->video_path ? 'aspect-video' : 'h-44' }}">
+                    @if($item->video_path)
+                        <video controls playsinline preload="metadata" class="absolute inset-0 h-full w-full bg-black object-contain">
+                            <source src="{{ url('/storage/' . $item->video_path) }}" type="{{ str_ends_with(strtolower($item->video_path), '.webm') ? 'video/webm' : 'video/mp4' }}">
+                            Browser Anda tidak mendukung pemutaran video.
+                        </video>
+                    @elseif($videoEmbedUrl)
+                        <iframe src="{{ $videoEmbedUrl }}" title="Video edukasi: {{ $item->judul }}" class="absolute inset-0 h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+                    @elseif($item->gambar)
                         <img src="{{ asset('storage/' . $item->gambar) }}" alt="{{ $item->judul }}"
                              class="h-full w-full object-cover object-center transition duration-300 group-hover:scale-105">
                     @else

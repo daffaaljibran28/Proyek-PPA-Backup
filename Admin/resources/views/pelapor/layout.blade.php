@@ -8,7 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] > summary svg { transform: rotate(180deg); }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
     <div class="min-h-screen md:flex">
@@ -20,7 +24,10 @@
             <nav class="space-y-1 text-sm">
                 <a href="{{ route('pelapor.home') }}" class="block rounded-lg px-3 py-2.5 {{ request()->routeIs('pelapor.home') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Beranda</a>
                 <details class="group rounded-lg" {{ request()->routeIs('pelapor.laporan.create') || request()->routeIs('pelapor.emergency') ? 'open' : '' }}>
-                    <summary class="cursor-pointer list-none rounded-lg px-3 py-2.5 text-slate-600 hover:bg-slate-50">Buat Pengaduan <span class="float-right text-xs">⌄</span></summary>
+                    <summary class="flex cursor-pointer list-none items-center justify-between rounded-lg px-3 py-2.5 text-slate-600 transition hover:bg-slate-50 hover:text-rose-700">
+                        <span>Buat Pengaduan</span>
+                        <svg class="h-4 w-4 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                    </summary>
                     <div class="ml-3 space-y-1 border-l border-rose-100 pl-3">
                         <a href="{{ route('pelapor.laporan.create') }}" class="block rounded-lg px-3 py-2 {{ request()->routeIs('pelapor.laporan.create') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Laporan Biasa</a>
                         <a href="{{ route('pelapor.emergency') }}" class="block rounded-lg px-3 py-2 {{ request()->routeIs('pelapor.emergency') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600 hover:bg-slate-50' }}">Emergency Call</a>
@@ -39,10 +46,11 @@
 
         <div class="min-w-0 flex-1">
             <header class="border-b border-rose-100 bg-white px-4 py-4 sm:px-7 md:px-10">
-                <div class="mx-auto flex max-w-6xl items-center justify-between gap-4">
+                <div class="mx-auto flex max-w-6xl items-center gap-4">
                     <div><p class="text-xs font-medium text-rose-700">SAHABAT PPA</p><p class="text-sm font-semibold sm:text-base">Ruang Pelapor</p></div>
-                    <span class="hidden text-sm text-slate-600 sm:block">Halo, {{ auth()->user()->name }}</span>
-                    <details class="relative ml-auto sm:ml-0">
+                    <div class="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+                    <span class="hidden max-w-52 truncate rounded-full bg-rose-50 px-4 py-2 text-sm text-slate-600 sm:block">Halo, <strong class="font-semibold text-rose-700">{{ auth()->user()->name }}</strong></span>
+                    <details class="relative">
                         <summary aria-label="Notifikasi" title="Notifikasi" class="grid h-10 w-10 cursor-pointer list-none place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-rose-50 hover:text-rose-700">
                             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-4-5.7V5a2 2 0 1 0-4 0v.3A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0m6 0H9"/></svg>
                             @if ($pelaporNotifications->contains(fn ($notification) => !$notification['read']))<span class="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">{{ $pelaporNotifications->filter(fn ($notification) => !$notification['read'])->count() }}</span>@endif
@@ -74,11 +82,15 @@
                         </div>
                     </details>
                     <form method="POST" action="{{ route('pelapor.logout') }}" class="md:hidden">@csrf<button aria-label="Keluar" title="Keluar" class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">Keluar</button></form>
+                    </div>
                 </div>
                 <nav class="mx-auto mt-4 flex max-w-6xl gap-2 overflow-x-auto whitespace-nowrap text-sm md:hidden">
                     <a href="{{ route('pelapor.home') }}" class="rounded-lg px-3 py-2 {{ request()->routeIs('pelapor.home') ? 'bg-rose-50 font-semibold text-rose-700' : 'text-slate-600' }}">Beranda</a>
                     <details class="relative">
-                        <summary class="cursor-pointer list-none rounded-lg px-3 py-2 text-slate-600">Buat Pengaduan ⌄</summary>
+                        <summary class="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-3 py-2 text-slate-600 transition hover:bg-rose-50 hover:text-rose-700">
+                            Buat Pengaduan
+                            <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+                        </summary>
                         <div class="absolute left-0 z-20 mt-1 min-w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"><a href="{{ route('pelapor.laporan.create') }}" class="block rounded-md px-3 py-2 text-slate-700 hover:bg-rose-50">Laporan Biasa</a><a href="{{ route('pelapor.emergency') }}" class="block rounded-md px-3 py-2 text-slate-700 hover:bg-rose-50">Emergency Call</a></div>
                     </details>
                     <a href="{{ route('pelapor.laporan.index') }}" class="rounded-lg px-3 py-2 text-slate-600">Riwayat</a>

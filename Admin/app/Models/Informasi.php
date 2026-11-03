@@ -18,7 +18,8 @@ class Informasi extends Model
         'konten',
         'status',
         'tanggal_publish',
-        'gambar', 
-        
+        'gambar',
+        'video_url',
+        'video_path',
     ];
 }

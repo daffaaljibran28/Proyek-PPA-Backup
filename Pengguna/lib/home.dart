@@ -204,21 +204,27 @@ class _HomePageState extends State<HomePage> {
                       color: AppTheme.primaryPink, size: 28),
                 ),
                 const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Selamat datang,',
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12, color: AppTheme.textGrey)),
-                    Text(UserSession.name,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Selamat datang,',
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12, color: AppTheme.textGrey)),
+                      Text(
+                        UserSession.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.textDark)),
-                    Text('Pengguna',
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11, color: AppTheme.textGrey)),
-                  ],
+                            color: AppTheme.textDark),
+                      ),
+                      Text('Pengguna',
+                          style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11, color: AppTheme.textGrey)),
+                    ],
+                  ),
                 ),
               ],
             ),

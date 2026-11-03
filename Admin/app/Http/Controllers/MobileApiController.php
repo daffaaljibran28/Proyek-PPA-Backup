@@ -14,6 +14,7 @@ class MobileApiController extends Controller
 {
     public function informations()
     {
+        $storageBaseUrl = request()->getSchemeAndHttpHost().'/storage/';
         $informasis = Informasi::query()
             ->where('status', 'published')
             ->where(function ($query) {
@@ -21,7 +22,13 @@ class MobileApiController extends Controller
                     ->orWhereDate('tanggal_publish', '<=', today());
             })
             ->latest('tanggal_publish')
-            ->get(['id', 'judul', 'konten', 'gambar', 'tanggal_publish']);
+            ->get(['id', 'judul', 'konten', 'gambar', 'video_url', 'video_path', 'tanggal_publish'])
+            ->map(function (Informasi $informasi) use ($storageBaseUrl) {
+                $informasi->gambar_url = $informasi->gambar ? $storageBaseUrl.$informasi->gambar : null;
+                $informasi->video_file_url = $informasi->video_path ? $storageBaseUrl.$informasi->video_path : null;
+
+                return $informasi;
+            });
 
         return response()->json(['status' => 'success', 'data' => $informasis]);
     }

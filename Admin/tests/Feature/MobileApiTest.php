@@ -225,6 +225,22 @@ class MobileApiTest extends TestCase
             ->assertJsonPath('data.0.judul', 'Konten terbit');
     }
 
+    public function test_mobile_information_includes_a_url_for_uploaded_videos(): void
+    {
+        $published = Informasi::create([
+            'judul' => 'Video terbit',
+            'konten' => 'Video untuk pengguna.',
+            'status' => 'published',
+            'tanggal_publish' => today(),
+            'video_path' => 'informasi/videos/edukasi.mp4',
+        ]);
+
+        $this->getJson('/api/informasi')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $published->id)
+            ->assertJsonPath('data.0.video_file_url', 'http://localhost/storage/informasi/videos/edukasi.mp4');
+    }
+
     public function test_mobile_report_numbers_are_sequential_per_day(): void
     {
         $this->travelTo(now()->setDate(2026, 11, 2)->setTime(12, 0));

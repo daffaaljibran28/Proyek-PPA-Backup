@@ -10,7 +10,21 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        if (! $user->isAdmin()) {
+            if ($request->expectsJson()) {
+                abort(403);
+            }
+
+            if (strtolower((string) $user->role) === 'pengguna') {
+                return redirect()->route('pelapor.home')
+                    ->with('error', 'Halaman tersebut khusus admin. Masuk dengan akun admin untuk melanjutkan.');
+            }
+
+            abort(403);
+        }
 
         return $next($request);
     }

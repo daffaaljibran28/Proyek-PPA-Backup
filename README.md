@@ -34,6 +34,18 @@ Project gabungan ini memakai Laravel untuk admin/API dan Flutter untuk aplikasi 
 
 4. Buka `http://localhost:8000/login` untuk admin. Pengguna Flutter dapat membuat akun melalui aplikasi. Akun dan laporan disimpan pada database Laravel yang sama; lampiran disimpan pada storage privat Laravel.
 
+### Lampiran Informasi & Edukasi
+
+Informasi dapat memakai tautan YouTube/Vimeo atau satu file MP4/WebM hingga 50 MB. Setelah memperbarui proyek, jalankan migrasi dan pastikan tautan storage publik Laravel tersedia:
+
+```powershell
+cd Admin
+php artisan migrate
+php artisan storage:link
+```
+
+Server PHP harus mengizinkan unggahan minimal 50 MB (`upload_max_filesize`) dan ukuran permintaan sedikit lebih besar (`post_max_size`). Halaman web memutar file video dari `/storage/informasi/videos/`; jika unggahan berhasil tetapi video tidak termuat, pastikan `public/storage` tertaut ke `storage/app/public` dan server web melayani berkas statis dari direktori `public`.
+
 Jalankan `php artisan key:generate` hanya pada instalasi baru atau jika `APP_KEY` masih kosong. Jangan mengganti kunci instalasi yang sudah berjalan. Jangan jalankan migrasi pada database produksi tanpa backup terlebih dahulu.
 
 ## Menjalankan Flutter

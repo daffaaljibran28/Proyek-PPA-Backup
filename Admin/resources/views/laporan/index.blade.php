@@ -67,7 +67,16 @@
                         <td class="py-4 px-2 md:px-3 font-medium text-gray-700 break-words">
                             {{ $item->nama_pelapor ?? '-' }}
                         </td>
-                        <td class="py-4 px-2 md:px-3 text-gray-600 break-words">{{ $item->lokasi_kejadian }}</td>
+                        <td class="py-4 px-2 md:px-3 text-gray-600 break-words">
+                            @if($item->lokasi_kejadian)
+                                <a href="https://www.google.com/maps/search/?api=1&amp;query={{ urlencode($item->lokasi_kejadian) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-rose-700 hover:underline" title="Buka lokasi di Google Maps">
+                                    <span>{{ $item->lokasi_kejadian }}</span>
+                                    <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                                </a>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td class="py-4 px-2 md:px-3 text-gray-500">{{ optional($item->tanggal_kejadian)->format('d M Y') ?? '-' }}</td>
                         <td class="py-4 px-2 md:px-3 text-center">
                             @if($item->status_penanganan == 'Menunggu Verifikasi')

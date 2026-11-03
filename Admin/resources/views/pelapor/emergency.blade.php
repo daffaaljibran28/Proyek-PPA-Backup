@@ -3,7 +3,12 @@
 @section('title', 'Emergency Call')
 
 @section('content')
-    <a href="{{ route('pelapor.home') }}" class="text-sm font-medium text-rose-700 hover:underline">← Beranda</a>
+    <a href="{{ route('pelapor.home') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-rose-700 transition hover:gap-3 hover:text-rose-800">
+        <span class="grid h-9 w-9 place-items-center rounded-full border border-rose-100 bg-white shadow-sm">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7 7-7-7 7-7"/></svg>
+        </span>
+        Beranda
+    </a>
     <section class="mx-auto mt-6 max-w-2xl rounded-xl border border-rose-200 bg-white p-6 sm:p-9">
         <p class="text-sm font-semibold text-rose-700">Emergency Call</p>
         <h1 class="mt-2 text-2xl font-bold">Hubungi UPTD PPA</h1>

@@ -35,10 +35,24 @@ class BaseLayout extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   showBackButton
-                      ? IconButton(
-                          icon: const Icon(Icons.arrow_back_ios,
-                              color: Colors.white, size: 20),
-                          onPressed: () => Navigator.pop(context),
+                      ? Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.24),
+                            ),
+                          ),
+                          child: IconButton(
+                            tooltip: 'Kembali',
+                            icon: const Icon(Icons.arrow_back_rounded,
+                                color: Colors.white, size: 22),
+                            onPressed: () async {
+                              await Navigator.maybePop(context);
+                            },
+                          ),
                         )
                       : Row(
                           children: [

@@ -4,8 +4,11 @@
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
             <a href="{{ route('pelapor.laporan.index') }}"
-               class="text-sm font-medium text-rose-700 hover:underline">
-                ← Riwayat Pengaduan
+               class="inline-flex items-center gap-2 text-sm font-semibold text-rose-700 transition hover:gap-3 hover:text-rose-800">
+                <span class="grid h-9 w-9 place-items-center rounded-full border border-rose-100 bg-white shadow-sm">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7 7-7-7 7-7"/></svg>
+                </span>
+                Riwayat Pengaduan
             </a>
 
             <h1 class="mt-3 text-2xl font-bold">Detail Pengaduan</h1>
@@ -53,6 +56,12 @@
                     <dd class="mt-1 break-words text-sm font-semibold [overflow-wrap:anywhere]">
                         {{ $laporan->lokasi_kejadian ?: '-' }}
                     </dd>
+                    @if($laporan->lokasi_kejadian)
+                        <a href="https://www.google.com/maps/search/?api=1&amp;query={{ urlencode($laporan->lokasi_kejadian) }}" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                            Buka di Google Maps
+                        </a>
+                    @endif
                 </div>
 
                 {{-- TANGGAL KEJADIAN --}}

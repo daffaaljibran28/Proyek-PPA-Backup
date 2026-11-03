@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import 'header.dart';
 import 'theme.dart';
@@ -59,6 +61,62 @@ class _EdukasiPageState extends State<EdukasiPage> {
 
     final apiUri = Uri.parse(AppTheme.apiUrl);
     return apiUri.resolve('/storage/$imagePath').toString();
+  }
+
+  Uri? _videoUri(Map<String, dynamic> item) {
+    final fileUrl = item['video_file_url'];
+    if (fileUrl is String && fileUrl.isNotEmpty) {
+      final uri = Uri.tryParse(fileUrl);
+      final apiUri = Uri.parse(AppTheme.apiUrl);
+      if (uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.scheme == apiUri.scheme &&
+          uri.host == apiUri.host &&
+          uri.port == apiUri.port &&
+          uri.path.startsWith('/storage/informasi/videos/')) {
+        return uri;
+      }
+    }
+
+    final videoUrl = item['video_url'];
+    if (videoUrl is String) {
+      final uri = Uri.tryParse(videoUrl);
+      if (uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          const {
+            'youtube.com',
+            'www.youtube.com',
+            'm.youtube.com',
+            'youtu.be',
+            'youtube-nocookie.com',
+            'www.youtube-nocookie.com',
+            'vimeo.com',
+            'www.vimeo.com',
+            'player.vimeo.com',
+          }.contains(uri.host)) {
+        return uri;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _openVideo(Uri uri) async {
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Video tidak dapat dibuka di perangkat ini.')),
+        );
+      }
+    } on PlatformException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Terjadi kesalahan saat membuka video.')),
+        );
+      }
+    }
   }
 
   String _publishedDate(dynamic value) {
@@ -193,6 +251,7 @@ class _EdukasiPageState extends State<EdukasiPage> {
 
   Widget _informationCard(Map<String, dynamic> item) {
     final imageUrl = _imageUrl(item['gambar']);
+    final videoUri = _videoUri(item);
     final date = _publishedDate(item['tanggal_publish']);
 
     return Container(
@@ -248,6 +307,18 @@ class _EdukasiPageState extends State<EdukasiPage> {
                     color: AppTheme.textGrey,
                   ),
                 ),
+                if (videoUri != null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _openVideo(videoUri),
+                    icon: const Icon(Icons.play_circle_outline),
+                    label: const Text('Tonton video'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryPink,
+                      side: const BorderSide(color: AppTheme.primaryPink),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

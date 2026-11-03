@@ -1,6 +1,8 @@
 <x-app-layout>
     <div class="flex items-center gap-3 mb-6">
-        <a href="{{ route('pengguna.index') }}" class="w-9 h-9 border border-gray-200 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-50 transition shadow-sm">←</a>
+        <a href="{{ route('pengguna.index') }}" aria-label="Kembali ke daftar pengguna" title="Kembali ke daftar pengguna" class="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:-translate-x-0.5 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7 7-7-7 7-7"/></svg>
+        </a>
         <h2 class="text-xl font-bold text-rose-600">Profil & Riwayat Pengguna</h2>
     </div>
 

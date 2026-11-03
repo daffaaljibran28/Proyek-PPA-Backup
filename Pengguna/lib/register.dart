@@ -466,19 +466,30 @@ class _RegisterState extends State<Register> {
                       left: 15,
                       top: 18,
                       child: Container(
-                        width: 36,
-                        height: 36,
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withValues(alpha: 0.24),
                           shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.4),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          onPressed: () => Navigator.pop(context),
+                          tooltip: 'Kembali',
+                          onPressed: () => Navigator.maybePop(context),
                           icon: const Icon(
-                            Icons.arrow_back_ios_new,
+                            Icons.arrow_back_rounded,
                             color: Colors.white,
-                            size: 17,
+                            size: 20,
                           ),
                         ),
                       ),
@@ -496,7 +507,7 @@ class _RegisterState extends State<Register> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.pink.withOpacity(0.2),
+                                color: Colors.pink.withValues(alpha: 0.2),
                                 blurRadius: 10,
                                 offset: const Offset(0, 5),
                               ),

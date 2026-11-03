@@ -89,8 +89,12 @@ class PelaporAuthTest extends TestCase
         $user = $this->createPelapor();
 
         $this->actingAs($user)->get('/')->assertRedirect(route('pelapor.home'));
-        $this->actingAs($user)->get('/laporan')->assertForbidden();
-        $this->actingAs($user)->get('/pengguna')->assertForbidden();
+        $this->actingAs($user)->get('/laporan')
+            ->assertRedirect(route('pelapor.home'))
+            ->assertSessionHas('error');
+        $this->actingAs($user)->get('/pengguna')
+            ->assertRedirect(route('pelapor.home'))
+            ->assertSessionHas('error');
     }
 
     public function test_pelapor_can_log_in_with_a_session(): void
@@ -186,6 +190,53 @@ class PelaporAuthTest extends TestCase
         foreach (['/pelapor/home', '/pelapor/pengaduan', '/pelapor/pengaduan/buat', '/pelapor/informasi-edukasi', '/pelapor/emergency-call', '/pelapor/profil'] as $path) {
             $this->actingAs($user)->get($path)->assertOk();
         }
+    }
+
+    public function test_report_form_has_an_interactive_map_picker_and_google_maps_link(): void
+    {
+        $user = $this->createPelapor();
+
+        $this->actingAs($user)
+            ->get(route('pelapor.laporan.create'))
+            ->assertOk()
+            ->assertSee('id="openMapPicker"', false)
+            ->assertSee('Pilih di Peta')
+            ->assertSee('id="currentLocationButton"', false)
+            ->assertSee('Lokasi Saat Ini')
+            ->assertSee('navigator.geolocation.getCurrentPosition', false)
+            ->assertSee('id="locationMap"', false)
+            ->assertSee('tile.openstreetmap.org', false)
+            ->assertSee('google.com/maps/search/?api=1', false);
+    }
+
+    public function test_report_locations_open_google_maps_for_the_report_owner_and_admin(): void
+    {
+        $user = $this->createPelapor();
+        $laporan = Laporan::create([
+            'id_pengguna' => $user->id,
+            'kategori' => 'Kekerasan terhadap Anak',
+            'lokasi_kejadian' => 'Jalan Melati 10, Bandung',
+            'status_penanganan' => 'Menunggu Verifikasi',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pelapor.laporan.show', $laporan->id_laporan))
+            ->assertOk()
+            ->assertSee('Buka di Google Maps')
+            ->assertSee('google.com/maps/search/?api=1', false);
+
+        $admin = User::create([
+            'name' => 'Admin SAPA',
+            'email' => 'admin-maps@example.com',
+            'password' => Hash::make('Password123!'),
+            'role' => 'admin',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('laporan.show', $laporan->id_laporan))
+            ->assertOk()
+            ->assertSee('Buka di Google Maps')
+            ->assertSee('google.com/maps/search/?api=1', false);
     }
 
     public function test_pelapor_cannot_submit_another_report_while_the_latest_is_active(): void

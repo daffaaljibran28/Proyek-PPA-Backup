@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Informasi;
+use App\Support\InformationVideo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class AdminInformasiController extends Controller
 {
@@ -44,12 +46,28 @@ class AdminInformasiController extends Controller
             'status' => 'required|in:draf,published',
             'tanggal_publish' => 'required|date',
             'gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:5120', // Validasi foto maksimal 5MB
+            'video_url' => ['nullable', 'string', 'max:2048', 'url', function ($attribute, $value, $fail) {
+                if ($value && ! InformationVideo::embedUrl($value)) {
+                    $fail('Tautan video harus berasal dari YouTube atau Vimeo.');
+                }
+            }],
+            'video' => 'nullable|file|mimes:mp4,webm|max:51200',
         ]);
 
-        // Tangani upload gambar jika ada
+        if ($request->hasFile('video') && ! empty($validated['video_url'])) {
+            throw ValidationException::withMessages([
+                'video' => 'Pilih tautan video atau unggah file video, jangan keduanya.',
+            ]);
+        }
+
         if ($request->hasFile('gambar')) {
             $validated['gambar'] = $request->file('gambar')->store('informasi', 'public');
         }
+
+        if ($request->hasFile('video')) {
+            $validated['video_path'] = $request->file('video')->store('informasi/videos', 'public');
+        }
+        unset($validated['video']);
 
         Informasi::create($validated);
 
@@ -72,20 +90,44 @@ class AdminInformasiController extends Controller
             'status' => 'required|in:draf,published',
             'tanggal_publish' => 'required|date',
             'gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'video_url' => ['nullable', 'string', 'max:2048', 'url', function ($attribute, $value, $fail) {
+                if ($value && ! InformationVideo::embedUrl($value)) {
+                    $fail('Tautan video harus berasal dari YouTube atau Vimeo.');
+                }
+            }],
+            'video' => 'nullable|file|mimes:mp4,webm|max:51200',
         ]);
 
         $informasi = Informasi::findOrFail($id);
 
-        // Tangani jika ada upload gambar baru
-        if ($request->hasFile('gambar')) {
-            // Hapus gambar lama jika ada di storage
-            if ($informasi->gambar && Storage::disk('public')->exists($informasi->gambar)) {
-                Storage::disk('public')->delete($informasi->gambar);
-            }
-            // Simpan gambar baru
-            $validated['gambar'] = $request->file('gambar')->store('informasi', 'public');
+        if ($request->hasFile('video') && ! empty($validated['video_url'])) {
+            throw ValidationException::withMessages([
+                'video' => 'Pilih tautan video atau unggah file video, jangan keduanya.',
+            ]);
         }
 
+        if ($request->hasFile('gambar')) {
+            $this->deleteStoredFile($informasi->gambar);
+            $validated['gambar'] = $request->file('gambar')->store('informasi', 'public');
+        } elseif ($request->boolean('hapus_gambar')) {
+            $this->deleteStoredFile($informasi->gambar);
+            $validated['gambar'] = null;
+        }
+
+        if ($request->hasFile('video')) {
+            $this->deleteStoredFile($informasi->video_path);
+            $validated['video_path'] = $request->file('video')->store('informasi/videos', 'public');
+            $validated['video_url'] = null;
+        } elseif (! empty($validated['video_url'])) {
+            $this->deleteStoredFile($informasi->video_path);
+            $validated['video_path'] = null;
+        } elseif ($request->boolean('hapus_video')) {
+            $this->deleteStoredFile($informasi->video_path);
+            $validated['video_path'] = null;
+            $validated['video_url'] = null;
+        }
+
+        unset($validated['video']);
         $informasi->update($validated);
 
         return redirect()->route('admin.informasi.index')->with('success', 'Informasi berhasil diperbarui.');
@@ -95,13 +137,18 @@ class AdminInformasiController extends Controller
     {
         $informasi = Informasi::findOrFail($id);
 
-        // Hapus file gambar dari storage jika ada saat data dihapus
-        if ($informasi->gambar && Storage::disk('public')->exists($informasi->gambar)) {
-            Storage::disk('public')->delete($informasi->gambar);
-        }
+        $this->deleteStoredFile($informasi->gambar);
+        $this->deleteStoredFile($informasi->video_path);
 
         $informasi->delete();
 
         return back()->with('success', 'Informasi berhasil dihapus.');
+    }
+
+    private function deleteStoredFile(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }
